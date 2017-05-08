@@ -66,7 +66,7 @@
             
             
               <div class="version">
-                0.01
+                0.02
               </div>
             
           
@@ -94,6 +94,9 @@
 <li class="toctree-l1"><a class="reference internal" href="Introduction.html">1. Introduction</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">2. Installation</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#dependencies">2.1. Dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#prerequisites">2.2. Prerequisites:</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#prepare-maker-control-files">2.3. Prepare MAKER control files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#todo">2.4. TODO</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial.html">3. Tutorial</a></li>
@@ -162,24 +165,90 @@
             
   <div class="section" id="installation">
 <h1>2. Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h1>
-<p>How to install defusion</p>
+<p>How to install <cite>deFusion</cite></p>
+<p><cite>deFusion</cite> is tested with python 2.7.9.</p>
 <div class="section" id="dependencies">
 <h2>2.1. Dependencies<a class="headerlink" href="#dependencies" title="Permalink to this headline">¶</a></h2>
-<p>Install python dependencies:</p>
-<blockquote>
-<div><ul class="simple">
-<li>gffutils</li>
-<li>biopython</li>
-</ul>
-</div></blockquote>
-<p>Other required packages:</p>
+<p>Install dependencies:</p>
 <blockquote>
 <div><ol class="arabic simple">
-<li>MAKER version:</li>
-<li>BioPerl</li>
-<li>NCBI BLAST+</li>
+<li>python/2.7.9</li>
+<li>gffutils/0.8.7.1</li>
+<li>Biopython/1.65</li>
+<li>BioPerl/1.6.924</li>
+<li>MAKER/r1128</li>
+<li>BLAST+/2.2.30</li>
 </ol>
 </div></blockquote>
+</div>
+<div class="section" id="prerequisites">
+<h2>2.2. Prerequisites:<a class="headerlink" href="#prerequisites" title="Permalink to this headline">¶</a></h2>
+<p>Under current build, <cite>deFusion</cite> was designed to identify and &#8216;defuse&#8217; fused
+annotated genes in MAKER annotated genomes. Output files generated from a MAKER
+run are expected to be used as input files for <cite>deFusion</cite>:</p>
+<ol class="arabic simple">
+<li>Transcripts in [fasta] format</li>
+<li>MAKER genome annotation in [GFF] format</li>
+<li>Genome sequence in [fasta] format</li>
+<li>MAKER control(ctl) files</li>
+</ol>
+</div>
+<div class="section" id="prepare-maker-control-files">
+<h2>2.3. Prepare MAKER control files<a class="headerlink" href="#prepare-maker-control-files" title="Permalink to this headline">¶</a></h2>
+<p>MAKER control files <cite>maker_bopts.ctl</cite>, <cite>maker_exe.ctl</cite>, <cite>maker_opts.ctl</cite> provide
+the basic resource location/path informations for MAKER pipeline. Here we need
+to create the MAKER controls for the deFusion pipeline, and we only need to
+change the <cite>maker_opts.ctl</cite> file.</p>
+<p>You can copy those three control files from your previous MAKER run, but with the
+following changes:</p>
+<p><strong>Note: options are set to 0 unless noted in modifications</strong></p>
+<ul>
+<li><p class="first">Section: Genome section:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="mf">1.</span> <span class="n">delete</span> <span class="n">genome</span> <span class="n">path</span>
+</pre></div>
+</div>
+</li>
+<li><p class="first">Section: Re-annotation Using MAKER Derived GFF3:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="mf">2.</span> <span class="n">delete</span> <span class="n">maker_gff</span> <span class="n">path</span>
+<span class="mf">3.</span> <span class="nb">set</span> <span class="n">rm_pass</span> <span class="o">=</span> <span class="mi">1</span>
+</pre></div>
+</div>
+</li>
+<li><p class="first">Section: EST Evidence and Protein Homology Evidence:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="mf">4.</span> <span class="n">est</span><span class="o">=/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">your</span><span class="o">/</span><span class="n">EST</span><span class="o">/</span><span class="n">evidences</span><span class="o">.</span><span class="n">fa</span>
+<span class="mf">5.</span> <span class="n">protein</span><span class="o">=/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">your</span><span class="o">/</span><span class="n">protein</span><span class="o">/</span><span class="n">evidences</span><span class="o">.</span><span class="n">fa</span>
+</pre></div>
+</div>
+</li>
+<li><p class="first">Repeat Masking:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="mf">6.</span> <span class="nb">set</span> <span class="nb">all</span> <span class="n">repeat</span> <span class="n">masking</span> <span class="n">to</span> <span class="n">null</span> <span class="ow">or</span> <span class="s1">&#39;0&#39;</span>
+<span class="mf">7.</span> <span class="nb">set</span> <span class="n">softmask</span><span class="o">=</span><span class="mi">1</span>
+</pre></div>
+</div>
+</li>
+<li><p class="first">Section: Gene Prediction:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="mf">7.</span> <span class="n">snaphmm</span><span class="o">=/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">SNAP</span><span class="o">/</span><span class="n">snap</span><span class="o">.</span><span class="n">hmm</span>
+<span class="mf">8.</span> <span class="n">augustus_species</span><span class="o">=</span><span class="n">augustus_spp</span>
+<span class="mf">9.</span> <span class="ow">or</span> <span class="n">other</span> <span class="n">gene</span> <span class="n">prediction</span> <span class="n">files</span>
+</pre></div>
+</div>
+</li>
+<li><p class="first">Section: MAKER Behavior Options:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="mf">10.</span> <span class="n">AED_threshold</span><span class="o">=</span><span class="mi">1</span>
+<span class="mf">11.</span> <span class="n">always_complete</span><span class="o">=</span><span class="mi">1</span>
+<span class="mf">12.</span> <span class="n">keep_preds</span><span class="o">=</span><span class="mi">1</span>
+</pre></div>
+</div>
+</li>
+</ul>
+<p>Example MAKER control files: <a class="reference external" href="files/maker_ctl.tgz">control files</a></p>
+</div>
+<div class="section" id="todo">
+<h2>2.4. TODO<a class="headerlink" href="#todo" title="Permalink to this headline">¶</a></h2>
+<p>Using <a class="reference external" href="http://conda.pydata.org/docs/index.html">conda</a>:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">install</span> <span class="o">--</span><span class="n">channel</span> <span class="n">bioconda</span> <span class="n">defusion</span>
+</pre></div>
+</div>
 </div>
 </div>
 
