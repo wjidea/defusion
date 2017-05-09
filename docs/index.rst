@@ -14,9 +14,11 @@ Table of Contents:
 
 .. toctree::
    :maxdepth: 2
-   :numbered: 
+   :numbered:
 
    Introduction <Introduction>
    Installation <installation>
    Tutorial <tutorial>
-
+   Change logs <log>
+   File format <file_format>
+   FAQ <FAQ>
