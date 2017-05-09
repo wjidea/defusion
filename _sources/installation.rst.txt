@@ -8,12 +8,12 @@ Dependencies
 ------------
 Install dependencies:
 
- #. python/2.7.9
- #. gffutils/0.8.7.1
- #. Biopython/1.65
- #. BioPerl/1.6.924
- #. MAKER/r1128
- #. BLAST+/2.2.30
+ #. `python/2.7.9 <http://www.python.org/>`_
+ #. `gffutils/0.8.7.1 <https://github.com/daler/gffutils>`_
+ #. `Biopython/1.65 <http://biopython.org/>`_
+ #. `BioPerl/1.6.924 <http://bioperl.org/>`_
+ #. `MAKER/r1128 <http://www.yandell-lab.org/software/maker.html>`_
+ #. `BLAST+/2.2.30 <ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.2.30/>`_
 
 Prerequisites:
 --------------
@@ -37,6 +37,8 @@ change the `maker_opts.ctl` file.
 
 You can copy those three control files from your previous MAKER run, but with the
 following changes:
+
+.. role:: red
 
 **Note: options are set to 0 unless noted in modifications**
 
