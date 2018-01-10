@@ -19,6 +19,8 @@ Table of Contents:
    Introduction <Introduction>
    Installation <installation>
    Tutorial <tutorial>
+   Prepare brk file <makeBrk>
    Change logs <log>
    File format <file_format>
    FAQ <FAQ>
+

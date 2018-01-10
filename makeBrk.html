@@ -1,0 +1,295 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>4. How to make a .brk file &mdash; deFusion alpha documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="deFusion alpha documentation" href="index.html"/>
+        <link rel="next" title="5. Change log" href="log.html"/>
+        <link rel="prev" title="3. Tutorial" href="tutorial.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> deFusion
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.02
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Introduction.html">1. Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">2. Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">3. Tutorial</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">4. Prepare brk file</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#prerequisites">4.1. Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#setup-jbrowse-instance">4.2. Setup Jbrowse instance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#fused-gene-model-scenario-1">4.3. Fused gene model - scenario 1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#fused-gene-model-scenario-2">4.4. Fused gene model - scenario 2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#fused-gene-model-scenario-3">4.5. Fused gene model - scenario 3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#fused-gene-model-scenario-4">4.6. Fused gene model - scenario 4</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#edit-brk-file-in-text-editor-or-ms-excel">4.7. Edit .brk file in text editor or MS excel</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="log.html">5. Change logs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="file_format.html">6. File format</a></li>
+<li class="toctree-l1"><a class="reference internal" href="FAQ.html">7. FAQ</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">deFusion</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>4. How to make a .brk file</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/makeBrk.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="how-to-make-a-brk-file">
+<h1>4. How to make a .brk file<a class="headerlink" href="#how-to-make-a-brk-file" title="Permalink to this headline">¶</a></h1>
+<p>A .brk file is the file format that created to locate the fused gene split point coordinate(s). In addition to the
+coordinate information, chromosome or scaffold sequence ID and fused gene ID are also included. Below is an example of
+the <a class="reference external" href="/file_format.html">.brk format</a>.</p>
+<p>Open .brk file in a text editor:</p>
+<a class="reference external image-reference" href="_images/brk.png"><img alt="_images/brk.png" src="_images/brk.png" /></a>
+<p>Open .brk file in MS excel:</p>
+<a class="reference external image-reference" href="_images/brk2.png"><img alt="_images/brk2.png" src="_images/brk2.png" /></a>
+<p>By default, the mid point of putative fused gene models are suggested as breaking point to split putative fused genes,
+but the breaking point for the gene models with 3 or more fused genes need to be manually curated. To determine the
+breaking points, gene models need to be visualized in a genome browser, such as <a class="reference external" href="https://jbrowse.org/demos/">Jbrowse</a>.</p>
+<div class="section" id="prerequisites">
+<h2>4.1. Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this headline">¶</a></h2>
+<blockquote>
+<div><ul class="simple">
+<li>Complete step 1: detect fused genes</li>
+<li>.brk file: breaking_point.brk</li>
+<li>Text editor, MS Excel or other alternatives</li>
+<li>Load your MAKER genome annotation into a genome browser, such as <a class="reference external" href="https://jbrowse.org/demos/">Jbrowse</a></li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="setup-jbrowse-instance">
+<h2>4.2. Setup <a class="reference external" href="https://jbrowse.org/demos/">Jbrowse</a> instance<a class="headerlink" href="#setup-jbrowse-instance" title="Permalink to this headline">¶</a></h2>
+<p>To install Jbrowse and setup Jbrowse instance, please refer to <a class="reference external" href="http://gmod.org/wiki/JBrowse_Tutorial_PAG_2016">Jbrowse_tutorial</a>.</p>
+</div>
+<div class="section" id="fused-gene-model-scenario-1">
+<h2>4.3. Fused gene model - scenario 1<a class="headerlink" href="#fused-gene-model-scenario-1" title="Permalink to this headline">¶</a></h2>
+<a class="reference external image-reference" href="_images/fused_scenario_1.png"><img alt="_images/fused_scenario_1.png" src="_images/fused_scenario_1.png" /></a>
+</div>
+<div class="section" id="fused-gene-model-scenario-2">
+<h2>4.4. Fused gene model - scenario 2<a class="headerlink" href="#fused-gene-model-scenario-2" title="Permalink to this headline">¶</a></h2>
+<a class="reference external image-reference" href="_images/fused_scenario_2.png"><img alt="_images/fused_scenario_2.png" src="_images/fused_scenario_2.png" /></a>
+</div>
+<div class="section" id="fused-gene-model-scenario-3">
+<h2>4.5. Fused gene model - scenario 3<a class="headerlink" href="#fused-gene-model-scenario-3" title="Permalink to this headline">¶</a></h2>
+<a class="reference external image-reference" href="_images/fused_scenario_3.png"><img alt="_images/fused_scenario_3.png" src="_images/fused_scenario_3.png" /></a>
+</div>
+<div class="section" id="fused-gene-model-scenario-4">
+<h2>4.6. Fused gene model - scenario 4<a class="headerlink" href="#fused-gene-model-scenario-4" title="Permalink to this headline">¶</a></h2>
+<a class="reference external image-reference" href="_images/fused_scenario_4.png"><img alt="_images/fused_scenario_4.png" src="_images/fused_scenario_4.png" /></a>
+</div>
+<div class="section" id="edit-brk-file-in-text-editor-or-ms-excel">
+<h2>4.7. Edit .brk file in text editor or MS excel<a class="headerlink" href="#edit-brk-file-in-text-editor-or-ms-excel" title="Permalink to this headline">¶</a></h2>
+<p>The most convenient way to edit the .brk file is in the MS excel or other tab-delimited editor GUI alternatives.</p>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="log.html" class="btn btn-neutral float-right" title="5. Change log" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="tutorial.html" class="btn btn-neutral" title="3. Tutorial" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Jie Wang and Kevin Childs.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'alpha',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

@@ -76,6 +76,12 @@ following changes:
 Example MAKER control files: `control files <files/maker_ctl.tgz>`_
 
 
+Download deFusion from GitHub:
+    git clone https://github.com/wjidea/defusion
+
+
+
+
 TODO
 ----
 
