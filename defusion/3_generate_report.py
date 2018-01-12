@@ -4,7 +4,7 @@
 
 # Aug 30, 2017
 # Jie Wang
-# Last update: Oct 16, 2017
+# Last update: Jan. 10, 2018
 
 
 # description: extract the AED score from the original and improved transcript sequence header
@@ -25,7 +25,11 @@ parser.add_argument('-f', '--force', help = 'force overwrite', action = 'store_t
 parser.add_argument('-v', '--verbose', help = 'increase verbosity', action = 'store_true')
 
 
-def extract_AED_scores(gff_file, goi_file):
+def extract_fasta_seqids(fasta_file):
+    ini = 0
+
+
+def extract_AED_scores(gff_file, goi_list):
     """
     extract AED score from genome
     :param gff_file:
@@ -33,19 +37,15 @@ def extract_AED_scores(gff_file, goi_file):
     :return:
     """
     fi_gff = open(gff_file, 'r')
-    fi_goi = open(goi_file, 'r')
+    aed_prog = re.compile("_AED=([^;]*)")
+    gene_id = re.compile("ID=([^;]*);")
     
-    goi_list = []
-    for gene_id in fi_goi.readlines():
-        goi_list.append(gene_id.rstrip().split('\t')[1])
-    fi_goi.close()
-
     for line in fi_gff.readlines():
-        line_list = line.rstrip().split('\t')
-        if len(line_list) > 3 and line_list[2] == "mRNA":
+        line_L = line.rstrip().split('\t')
+        if len(line_L) > 3 and line_L[2] == "mRNA":
         
-            attr_list = line_list[8].split(';')
-            gene_id = attr_list[0].split('=')[1]
+            attr = line_L[8]
+            gene_id = gene_id.search()
         
             if gene_id in goi_list:
                 print line,
@@ -53,6 +53,7 @@ def extract_AED_scores(gff_file, goi_file):
             continue
         
     fi_gff.close()
+    
     return(goi_list)
     
     

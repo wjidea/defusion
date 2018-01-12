@@ -3,7 +3,7 @@
 # defuse_gene.py
 
 # Oct. 14 2016
-# Last update: June 29, 2017
+# Last update: Jan. 10, 2018
 # Jie Wang
 
 # description: Identify the mis-annotated genes in the MAKER annotation pipeline,
@@ -31,6 +31,7 @@ import logging
 import multiprocessing
 import gffutils
 
+from utility_functions import which
 from argparse import ArgumentParser
 from shutil import copyfile
 from Bio import SeqIO
@@ -59,7 +60,7 @@ inFile = args.input
 # outPath = args.outpath
 # outBlast = args.blastOut
 numOfProcess = int(args.numOfProcess)
-blastn = args.blastn
+# blastn = args.blastn
 gffIn = args.gffin
 gffdb = args.gffdb
 prefixDir = os.path.join(args.prefix,'')
@@ -68,7 +69,13 @@ inFilesL = [inFile]
 # outFilesL = []
 
 # TODO add a function to validate input file, such as fasta and gff
-# TODO make function def canRunBLASTn() to determine if all executables are present in $PATH
+
+# check blastn in path
+if not which("blastn"):
+    blastn = blastn = args.blastn
+else:
+    logging.error('BLASTN executable is not in path\n module load BLAST+\n')
+    sys.exit()
 
 if args.verbose:
     logging.basicConfig(level=logging.DEBUG, format='(%(processName)-10s) %(asctime)s %(message)s')
@@ -85,10 +92,9 @@ except OSError:
     logging.error('Error in the temp directory')
     sys.exit()
 
-# check blastn path
 try:
-    if blastn == '': # todo need to fix this hard input file
-        blastn = '/opt/software/BLAST+/2.2.30--GCC-4.4.7/bin/blastn' #settings for lab server
+    # if blastn == '':
+    #     blastn = '/opt/software/BLAST+/2.2.30--GCC-4.4.7/bin/blastn' #settings for lab server
     if not os.path.isfile(blastn):
         logging.error('blastn is not in the specified path')
         sys.exit()
@@ -292,7 +298,7 @@ def break_point(geneDict):
             lineL = line.rstrip().split()
             blast_dict[lineL[0]] = lineL[1]
     
-    with open(prefixDir+'break_coordinates.txt', 'wb') as fh:
+    with open(prefixDir+'break_coordinates.brk', 'wb') as fh:
         for gene in geneDict:
             geneFeatL = geneDict[gene]
             # ROI = db.region(seqid=geneFeatL[0], start=geneFeatL[1], end=geneFeatL[2], completely_within=False)

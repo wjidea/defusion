@@ -54,7 +54,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'deFusion'
-copyright = u'2017, Jie Wang and Kevin Childs'
+copyright = u'2018, Jie Wang and Kevin Childs'
 author = u'Jie Wang and Kevin Childs'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -62,7 +62,7 @@ author = u'Jie Wang and Kevin Childs'
 # built documents.
 #
 # The short X.Y version.
-version = u'0.02'
+version = u'0.03'
 # The full version, including alpha/beta/rc tags.
 release = u'alpha'
 
@@ -157,7 +157,7 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
     (master_doc, 'defusion', u'defusion Documentation',
-     author, 'defusion', 'One line description of project.',
+     author, 'defusion', 'resolve fused gene annotation by MAKER',
      'Miscellaneous'),
 ]
 

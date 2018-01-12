@@ -4,7 +4,7 @@
 
 # Nov. 28 2016
 # Jie Wang
-# Last update: May 9, 2017
+# Last update: Jan. 10, 2018
 
 # description: extract the sequence from the reference genome fasta file based on
 # the gene coordinates generated from 01_detect fused gene step, and run MAKER
@@ -14,10 +14,6 @@
 # implementation steps:
 # 1, extract the fasta based on the fused gene feature coordinates
 # 2, write a wrap for running MAKER with all the provided pathes to the
-
-# TODO add check for ENV especially for MAKER, BioPerl
-
-
 
 import logging
 import sys
@@ -29,11 +25,13 @@ import glob
 import gffutils
 import multiprocessing
 
+
 from shutil import copy2
 from argparse import ArgumentParser
 from functools import partial
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
+from utility_functions import which, fix_path_slash, log_err, parse_SeqID, bioperl_loaded
 
 ####### Header file ########
 description_arg = 'This is the second step of the defusion pipeline: 1) remove the original fused annotation' \
@@ -46,36 +44,13 @@ parser.add_argument('-i', '--genome', help='genome in fasta format', required=Tr
 parser.add_argument('-d', '--gffdb', help='input gff from MAKER2 output ', required=True)
 parser.add_argument('-c', '--coordin', help='gene coodinate at break point', required=True)
 parser.add_argument('-t', '--control', help='path trol file', required=True)
-parser.add_argument('-m', '--makerbin', help='path to maker executables directory',
-                    default='/opt/software/MAKER/r1128--GCC-4.4.7/bin/', required=False)
+parser.add_argument('-m', '--makerbin', help='path to maker executables directory', required=False)
 parser.add_argument('-n', '--numprocess', help='number of processes to be included', default=2, required=False)
 parser.add_argument('-p', '--prefix', help='prefix dirctory', default='tmp/', required=False)
 parser.add_argument('-s', '--datastore', help='with this flag to keep the datastore folder but need more disk space',
                     action='store_true', required=False, default=False)
 parser.add_argument('-v', '--verbose', help='increase verbosity', action='store_true', default=False)
 args = parser.parse_args()
-
-# define some commonly used functions
-def fix_path_slash(path):
-    return(os.path.join(os.path.abspath(path),''))
-
-
-def log_err(task, seqID, stdout, stderr):
-    logging.warning('stderr: {0}'.format(stderr))
-    logging.debug('stdout: {0}'.format(stdout))
-    logging.info('Finish {0} {1}'.format(task, seqID))
-
-    
-def parse_SeqID(seqID):
-    # seqID: Chr10_12968107_12975977
-    # prepare the coordinates
-    seqID_list = seqID.rstrip().split('_')
-
-    end = seqID_list.pop()
-    start = seqID_list.pop()
-    seqid = '_'.join(seqID_list)
-    return (seqid, int(start), int(end))
-
 
 seqIn = os.path.abspath(args.genome)
 gffdb = os.path.abspath(args.gffdb)
@@ -112,11 +87,20 @@ for inputFile in inFilesL:
         sys.exit()
 
 # check executables in $PATH
-# Run maker
 
+if not makerBinPath: # test makerbin is provided
+    if not which("maker"):
+        logging.error('MAKER executable is not in path\n module load MAKER\n')
+        sys.exit()
+    else:
+        maker_exe_path = which("maker")
+        makerBinPath, fname = os.path.split(maker_exe_path)
 
-
-
+if bioperl_loaded:
+    logging.info("BioPerl is loaded")
+else:
+    logging.error("BioPerl is not loaded")
+    sys.exit()
 
 ######## scripts start from here #########
 def flat_multiple_breaks(breakfile, outfile):
@@ -260,6 +244,7 @@ def prep_maker_gff(gffdb, seqID, prefix):
 
 def del_gene_records(gffdb, fileIn):
     '''
+    select region of deletion and delete the entries
     :param gffdb: gff sqlite database
     :param fileIn: breakfile from step 1
     :return: no return
@@ -277,10 +262,10 @@ def del_gene_records(gffdb, fileIn):
     with open(fileIn, 'rb') as fh:
         for line in fh.readlines():
             lineL = line.split()
-            seqID, geneID = lineL[0:2]
+            seqID, geneID1 = lineL[0:2]
             coordL = lineL[2:]
             coordL.sort()
-            start = coordL[0]
+            start = coordL[0] - 1
             end = coordL[-1]
             
             # query1 = db.execute('''
@@ -288,13 +273,27 @@ def del_gene_records(gffdb, fileIn):
             #           '''.format(start, end))
             # print query1.fetchall()
             
-            # # prepare region of interest
-            ROI_within = db.region(seqid=seqID, start=int(start) - 1, end=int(end), completely_within=True)
+            # extract region to be collected
+            ROI_within = db.region(seqid=seqID, start=int(start), end=int(end), completely_within=True, )
+            # convert a generator to a list
+            ROI_list = list(ROI_within)
+            # get gene/mRNA ID from the mRNA entry
+            geneIDs = [x.attributes['ID'][0] for x in ROI_list if x.featuretype == "mRNA"]
             
+            keep_idx = []  # create a list container to save the index to keep
+            for num, i in enumerate(ROI_list):
+                if i.featuretype == "exon" or i.featuretype == "CDS":
+                    if i.attributes["Parent"][0] not in geneIDs:
+                        keep_idx.append(num)
+            
+            # make the iterator to remove from gffdb
+            ROI_list_rm = [element for i, element in enumerate(ROI_list) if i not in keep_idx]
+            
+            # remove associated features from the range
             if os.path.isfile(gffdb + '.bak'):
-                db.delete(ROI_within, make_backup=False)
+                db.delete(ROI_list_rm, make_backup=False)
             else:
-                db.delete(ROI_within, make_backup=True)
+                db.delete(ROI_list_rm, make_backup=True)
     
     logging.info('Complete remove fused gene annotation')
 

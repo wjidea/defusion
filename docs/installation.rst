@@ -15,8 +15,8 @@ Install dependencies:
  #. `MAKER/r1128 <http://www.yandell-lab.org/software/maker.html>`_
  #. `BLAST+/2.2.30 <ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.2.30/>`_
 
-Prerequisites:
---------------
+Prerequisites
+-------------
 
 Under current build, `deFusion` was designed to identify and 'defuse' fused
 annotated genes in MAKER annotated genomes. Output files generated from a MAKER
@@ -74,6 +74,13 @@ following changes:
     12. keep_preds=1
 
 Example MAKER control files: `control files <files/maker_ctl.tgz>`_
+
+
+Get deFusion
+------------
+Download deFusion from `GitHub <https://github.com/wjidea/defusion>`_::
+
+	git clone https://github.com/wjidea/defusion
 
 
 TODO
