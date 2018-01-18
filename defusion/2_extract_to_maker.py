@@ -4,7 +4,7 @@
 
 # Nov. 28 2016
 # Jie Wang
-# Last update: Jan. 10, 2018
+# Last update: Jan. 18, 2018
 
 # description: extract the sequence from the reference genome fasta file based on
 # the gene coordinates generated from 01_detect fused gene step, and run MAKER
@@ -31,7 +31,8 @@ from argparse import ArgumentParser
 from functools import partial
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
-from utility_functions import which, fix_path_slash, log_err, parse_SeqID, bioperl_loaded
+from utility_functions import which, fix_path_slash, log_err, parse_SeqID, \
+    bioperl_loaded, check_coord, coord_error
 
 ####### Header file ########
 description_arg = 'This is the second step of the defusion pipeline: 1) remove the original fused annotation' \
@@ -55,7 +56,7 @@ args = parser.parse_args()
 seqIn = os.path.abspath(args.genome)
 gffdb = os.path.abspath(args.gffdb)
 ctlPath = fix_path_slash(args.control)
-makerBinPath = fix_path_slash(args.makerbin)
+makerBinPath = args.makerbin
 coordIn = args.coordin # breakfile
 numProcess = int(args.numprocess)
 prefixDir = fix_path_slash(args.prefix)
@@ -95,6 +96,8 @@ if not makerBinPath: # test makerbin is provided
     else:
         maker_exe_path = which("maker")
         makerBinPath, fname = os.path.split(maker_exe_path)
+        makerBinPath = fix_path_slash(makerBinPath)
+        logging.info("MAKER is loaded in $PATH {}".format(makerBinPath))
 
 if bioperl_loaded:
     logging.info("BioPerl is loaded")
@@ -105,11 +108,16 @@ else:
 ######## scripts start from here #########
 def flat_multiple_breaks(breakfile, outfile):
     fo = open(prefixDir + outfile, 'wb')
-    
+    coord_error_bool = False
     with open(breakfile, 'r') as fn:
         for line in fn.readlines():
             lineL = line.rstrip().split('\t')
             
+            # set exception in the brk file
+            lineL = [i for i in lineL if i] # rm empty item
+            if lineL[2] == "collapsed" or len(lineL[2:]) < 3:
+                continue # skip to next index
+                
             coords_list = lineL[2:]
             coords_list = map(int, coords_list)
             coords_list.sort()
@@ -121,7 +129,15 @@ def flat_multiple_breaks(breakfile, outfile):
                 out_list = map(str, out_list)
                 out_line = '\t'.join(out_list) + '\n'
                 fo.write(out_line)
-
+                
+                # check if gene range large than 100k
+                error_in_coord = check_coord(prefixDir, lineL[0], coord_start, coord_end)
+                if not error_in_coord:
+                    coord_error_bool = True
+    
+    # validate error presence and decide ignore or not
+    coord_error(coord_error_bool)
+    
     fo.close()
 
 
@@ -151,13 +167,13 @@ def extract_seq(line):
         print('maker directory existed, please check')
         raise
     
-    SEQ = open(seqSelectFile, 'wb')
+    seq = open(seqSelectFile, 'wb')
     
     logging.info('Write sequence files {}'.format(seqSelectFile))
     seqrec = SeqRecord(seqSelect, folder, '', '')
-    SeqIO.write(seqrec, SEQ, 'fasta')
+    SeqIO.write(seqrec, seq, 'fasta')
     
-    SEQ.close()
+    seq.close()
     
     return(folder)
 
@@ -236,7 +252,7 @@ def prep_maker_gff(gffdb, seqID, prefix):
     #     db.delete(ROI_within, make_backup=False)
     # else:
     #     db.delete(ROI_within, make_backup=True)
-
+    logging.info('Finish {} prep maker_gff'.format(seqID))
     return({seqID:start_ori})
 
 # extract sequence coordinate from breakpoint to delete all the associated gff features
@@ -262,29 +278,39 @@ def del_gene_records(gffdb, fileIn):
     with open(fileIn, 'rb') as fh:
         for line in fh.readlines():
             lineL = line.split()
-            seqID, geneID1 = lineL[0:2]
+            seqID, gene_id = lineL[0:2]
             coordL = lineL[2:]
             coordL.sort()
-            start = coordL[0] - 1
-            end = coordL[-1]
+            start = int(coordL[0]) - 1
+            end = int(coordL[-1])
             
+            print gene_id
+            
+            gene_id_feature = db[gene_id]
+            
+            print(gene_id_feature)
+            
+            strand_gene_id = gene_id_feature.strand
             # query1 = db.execute('''
             #           SELECT * FROM features WHERE start >= {0} AND end =< {1}
             #           '''.format(start, end))
             # print query1.fetchall()
             
             # extract region to be collected
-            ROI_within = db.region(seqid=seqID, start=int(start), end=int(end), completely_within=True, )
+            ROI_within = db.region(seqid=seqID, start=start, end=end, completely_within=True)
             # convert a generator to a list
             ROI_list = list(ROI_within)
             # get gene/mRNA ID from the mRNA entry
             geneIDs = [x.attributes['ID'][0] for x in ROI_list if x.featuretype == "mRNA"]
             
-            keep_idx = []  # create a list container to save the index to keep
+            keep_idx = []  # create a list container to save the index to keep in the original gff file or gffdb
+            
             for num, i in enumerate(ROI_list):
                 if i.featuretype == "exon" or i.featuretype == "CDS":
                     if i.attributes["Parent"][0] not in geneIDs:
                         keep_idx.append(num)
+                elif i.strand != strand_gene_id:
+                    keep_idx.append(num)
             
             # make the iterator to remove from gffdb
             ROI_list_rm = [element for i, element in enumerate(ROI_list) if i not in keep_idx]
@@ -338,6 +364,7 @@ def run_maker(seqID, prefix, makerbin, keepStore):
     # Run maker
     logging.info('start MAKER {}'.format(seqID))
     makerExe = makerbin + 'maker'
+    
     cmd1 = '{maker} -q -fix_nucleotide'.format(maker=makerExe)
     cmd1L = shlex.split(cmd1)
     p1 = subprocess.Popen(cmd1L, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -375,6 +402,8 @@ def run_maker(seqID, prefix, makerbin, keepStore):
     
 def composite_run(lock, seqID):
     logging.info('Start working on {} folder'.format(seqID))  # Chr1_2741699_2750000
+    
+    print(seqID)
     
     with lock:
         seqIDCoordDict = prep_maker_gff(gffdb, seqID, prefixDir)
@@ -418,6 +447,9 @@ def update_gff(gffdb, prefixDir, seqIDCoord):
 
     newGffFile = '{0}{1}/{1}.all.gff'.format(prefixDir, seqID)
     modGffFile = '{0}{1}/{1}.all.mod.gff'.format(prefixDir, seqID)
+    
+    # TODO if annotation file is not there, not update the file.
+    
     if os.path.isfile(modGffFile):
         pass
     else:
@@ -471,9 +503,9 @@ def merge_gff(prefixDir, seqIDCoord):
     # merge gff file
     logging.info('[START] merge and update gff file for {}'.format(seqIDCoord))
     
-    gff_fhout = open(prefixDir + 'merged_gff.all.mod.gff', 'wb')
-    trans_fhout = open(prefixDir + 'merged_transcripts.fa', 'wb')
-    prot_fhout = open(prefixDir + 'merged_protein.fa', 'wb')
+    gff_fhout = open(prefixDir + 'merged_defused.all.mod.gff', 'wb')
+    trans_fhout = open(prefixDir + 'merged_defused_transcripts.fa', 'wb')
+    prot_fhout = open(prefixDir + 'merged_defused_protein.fa', 'wb')
     
     for seqDict in seqIDCoord:
         modGffFile = '{0}{1}/{1}.all.mod.gff'.format(prefixDir, seqDict.keys()[0])
@@ -523,15 +555,15 @@ def write_gff(gffdb):
         print(gffdb)
         raise ValueError('import gff/gtf sqlite data base is not present in given path')
     
-    with open(prefixDir+'out_defused.gff', 'w') as fout:
+    with open(prefixDir+'gene_features_wo_fused.gff', 'w') as fout:
         
         fout.write('## gff-version 3\n')
         
         for feature in db.all_features():
             fout.write(str(feature) + '\n')
         
-        with open(prefixDir + 'merged_gff.all.mod.gff', 'rb') as fhin:
-            fout.write(fhin.read())
+        # with open(prefixDir + 'merged_gff.all.mod.gff', 'rb') as fhin:
+        #     fout.write(fhin.read())
     
         # run BEDtools to sort gff file
         # logging.info('start bedtools sortbed')
@@ -549,19 +581,20 @@ def main():
     # main routine
     flat_multiple_breaks(coordIn, 'flat_break.txt')
     seqNamesL = run_extract_seq_parallel(prefixDir + 'flat_break.txt')
-    seqCoordL = run_maker_parallel(seqNamesL)
+    # seqNamesL = map(os.path.basename, glob.glob(prefixDir + 'Ro*')) # debugging purpose
 
+    seqCoordL = run_maker_parallel(seqNamesL)
     del_gene_records(gffdb, coordIn)
 
 ################################################################################################
     # This part was used solely to test the gffdb update part
-    
-    # seqFolderL = glob.glob(prefixDir + '/cro_v2_scaffold*')
+    #
+    # seqFolderL = glob.glob(prefixDir + '/Ro*')
     # seqFolderL = map(os.path.basename, seqFolderL)
     # def parse_folder_name(folder_name):
     #     folder_list = folder_name.split('_')
     #     print(folder_list)
-    #     start = folder_list[4]
+    #     start = folder_list[1]
     #     seq_adj = int(start) - 1
     #     return({folder_name:seq_adj})
     #

@@ -1,4 +1,4 @@
-import os, logging, subprocess, shlex
+import os, logging, subprocess, shlex, sys
 
 def which(program):
     def is_exe(fpath):
@@ -48,6 +48,33 @@ def parse_SeqID(seqID):
     start = seqID_list.pop()
     seqid = '_'.join(seqID_list)
     return (seqid, int(start), int(end))
+
+def check_coord(prefix, seq_id, start, end):
+    
+    gene_interval = int(end) - int(start)
+    if gene_interval > 100000:
+        fo = open(prefix + "/wrong_coordinates.err", 'ab')
+        fo.write("{}\t{}\t{}\t{}\n".format(seq_id, start, end, gene_interval))
+        logging.error("gene range greater than 100kb detected, please check wrong_coordinates.txt")
+        fo.close()
+        return(None)
+    
+    return(True)
+
+def coord_error(error):
+    if error:
+        cont = raw_input("coords errors detected, do you want to ignore and move on? (y/n)")
+    
+        if cont == "y" or cont == "Y":
+            logging.error("ignore coords error and move on")
+        elif cont == "n" or cont == "N":
+            logging.error("coord error detected, program terminated and please fix coordnated error acoording to "
+                          "prefix/wrong_coordinates.err")
+            sys.exit()
+        else:
+            logging.error(" Please type 'y' or 'n' ")
+            coord_error(True)
+
 
 
 if __name__ == "__main__":

@@ -16,20 +16,27 @@ from Bio import SeqIO
 
 parser = argparse.ArgumentParser(description = 'parse BLAST output and write to tab-delimited file')
 
-parser.add_argument('-i', '--gff_input', help='gff_file',required = True)
-parser.add_argument('-s', '--fasta_input', help='fasta protein or transcript sequences',required = False)
-parser.add_argument('-g', '--goi_input', help='breaking coordinate file',required = True)
-parser.add_argument('-o', '--output', help = 'output AED scores', required = False)
+# parser.add_argument('-i', '--gff_input', help='gff_file',required = True)
+parser.add_argument('-i', '--fasta_in', help='fasta protein or transcript sequences',required = False)
+parser.add_argument('-g', '--gff_in', help='gff file after drop fused genes',required = True)
+parser.add_argument('-o', '--fasta_out', help='output fasta',required = True)
+
+# parser.add_argument('-o', '--output', help = 'output AED scores', required = False)
 
 parser.add_argument('-f', '--force', help = 'force overwrite', action = 'store_true')
 parser.add_argument('-v', '--verbose', help = 'increase verbosity', action = 'store_true')
 
 
-def extract_fasta_seqids(fasta_file):
-    ini = 0
+# def extract_seqids(brk_file):
+#     gene_list = []
+#     with open(brk_file, 'rb') as fh:
+#         for line in fh.readlines():
+#             lineL = line.rstrip().split()
+#             gene_list.append(lineL[1])
+#     return(gene_list)
 
 
-def extract_AED_scores(gff_file, goi_list):
+def extract_AED_scores(gff_file):
     """
     extract AED score from genome
     :param gff_file:
@@ -38,17 +45,17 @@ def extract_AED_scores(gff_file, goi_list):
     """
     fi_gff = open(gff_file, 'r')
     aed_prog = re.compile("_AED=([^;]*)")
-    gene_id = re.compile("ID=([^;]*);")
+    gene_id_prog = re.compile("ID=(.*?)[;\n]")
+    goi_list = []
     
     for line in fi_gff.readlines():
         line_L = line.rstrip().split('\t')
+        
         if len(line_L) > 3 and line_L[2] == "mRNA":
-        
-            attr = line_L[8]
-            gene_id = gene_id.search()
-        
-            if gene_id in goi_list:
-                print line,
+            gene_id_search = gene_id_prog.search(line)
+            aed_search = aed_prog.search(line)
+            print gene_id_search.group(1), aed_search.group(1)
+            goi_list.append(gene_id_search.group(1))
         else:
             continue
         
@@ -57,11 +64,11 @@ def extract_AED_scores(gff_file, goi_list):
     return(goi_list)
     
     
-def drop_fasta_entries(fasta_file, drop_list):
+def drop_fasta_entries(fasta_file, keep_list, fasta_out):
     seq_fn = SeqIO.parse(fasta_file, 'fasta')
-    seq_fo = open("seq_out.fasta", 'wb')
+    seq_fo = open(fasta_out, 'wb')
     for seqrec in seq_fn:
-        if seqrec.id not in drop_list:
+        if seqrec.id in keep_list:
             SeqIO.write(seqrec, seq_fo,'fasta')
     
     seq_fo.close()
@@ -71,13 +78,13 @@ def main():
     args = parser.parse_args()
     
     # check if the input fild existed
-    input_gff = args.gff_input
-    input_goi = args.goi_input
-    input_fasta = args.fasta_input
-    out_file = args.output
+    input_gff = args.gff_in
+    input_fasta = args.fasta_in
+    out_file = args.fasta_out
 
-    goi_list = extract_AED_scores(gff_file=input_gff, goi_file=input_goi)
-    drop_fasta_entries(input_fasta, goi_list)
+    # goi_list = extract_AED_scores(gff_file=input_gff, goi_file=input_goi)
+    goi_list = extract_AED_scores(input_gff)
+    drop_fasta_entries(input_fasta, goi_list, out_file)
     
 if __name__ == "__main__":
     main()
