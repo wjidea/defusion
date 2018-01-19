@@ -27,16 +27,9 @@ parser.add_argument('-f', '--force', help = 'force overwrite', action = 'store_t
 parser.add_argument('-v', '--verbose', help = 'increase verbosity', action = 'store_true')
 
 
-# def extract_seqids(brk_file):
-#     gene_list = []
-#     with open(brk_file, 'rb') as fh:
-#         for line in fh.readlines():
-#             lineL = line.rstrip().split()
-#             gene_list.append(lineL[1])
-#     return(gene_list)
-
-
-def extract_AED_scores(gff_file):
+# extract mRNA name and aed scores from the gff file after defusion
+# this gff file only contains the gene features survived after defusion step
+def extract_geneid_AED(gff_file):
     """
     extract AED score from genome
     :param gff_file:
@@ -83,9 +76,8 @@ def main():
     out_file = args.fasta_out
 
     # goi_list = extract_AED_scores(gff_file=input_gff, goi_file=input_goi)
-    goi_list = extract_AED_scores(input_gff)
+    goi_list = extract_geneid_AED(input_gff)
     drop_fasta_entries(input_fasta, goi_list, out_file)
     
 if __name__ == "__main__":
     main()
-    

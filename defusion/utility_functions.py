@@ -61,6 +61,7 @@ def check_coord(prefix, seq_id, start, end):
     
     return(True)
 
+
 def coord_error(error):
     if error:
         cont = raw_input("coords errors detected, do you want to ignore and move on? (y/n)")
@@ -75,6 +76,20 @@ def coord_error(error):
             logging.error(" Please type 'y' or 'n' ")
             coord_error(True)
 
+
+def input_validate(in_list):
+    missing_files = []
+    file_valid_list = [os.path.isfile(file) for file in in_list]
+    
+    if all(file_valid_list):
+        return(True)
+    else:
+        for idx, bl in enumerate(file_valid_list):
+            if not bl:
+                missing_files.append(in_list[idx])
+                logging.error("missing input files {}".format(missing_files))
+                sys.exit()
+        # return missing_files
 
 
 if __name__ == "__main__":
