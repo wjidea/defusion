@@ -1,5 +1,6 @@
 import os, logging, subprocess, shlex, sys
 
+
 def which(program):
     def is_exe(fpath):
         return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
@@ -23,7 +24,7 @@ def bioperl_loaded():
     stdout, stderr = p1.communicate()
     # print('BioPerl', stdout, stderr)
     if not stderr:
-        print("bioPerl not installed")
+        logging.error("bioPerl not installed")
         return(None)
     else:
         return(True)
@@ -48,6 +49,7 @@ def parse_SeqID(seqID):
     start = seqID_list.pop()
     seqid = '_'.join(seqID_list)
     return (seqid, int(start), int(end))
+
 
 def check_coord(prefix, seq_id, start, end):
     
@@ -93,5 +95,5 @@ def input_validate(in_list):
 
 
 if __name__ == "__main__":
-    print("load utility functions")
+    logging.info("load utility functions")
     bioperl_loaded()

@@ -46,7 +46,7 @@ parser.add_argument('-d', '--gffdb', help='input gff from MAKER2 output ', requi
 parser.add_argument('-c', '--coordin', help='gene coodinate at break point', required=True)
 parser.add_argument('-t', '--control', help='path trol file', required=True)
 parser.add_argument('-m', '--makerbin', help='path to maker executables directory', required=False)
-parser.add_argument('-n', '--numprocess', help='number of processes to be included', default=2, required=False)
+parser.add_argument('-n', '--numprocess', help='number of processes to be included', default=4, required=False)
 parser.add_argument('-p', '--prefix', help='prefix dirctory', default='tmp/', required=False)
 parser.add_argument('-s', '--datastore', help='with this flag to keep the datastore folder but need more disk space',
                     action='store_true', required=False, default=False)
@@ -106,6 +106,8 @@ else:
     sys.exit()
 
 ######## scripts start from here #########
+
+# todo write a script to detect possible overlap break point coordinates
 def flat_multiple_breaks(breakfile, outfile):
     fo = open(prefixDir + outfile, 'wb')
     coord_error_bool = False
@@ -284,12 +286,7 @@ def del_gene_records(gffdb, fileIn):
             start = int(coordL[0]) - 1
             end = int(coordL[-1])
             
-            print gene_id
-            
             gene_id_feature = db[gene_id]
-            
-            print(gene_id_feature)
-            
             strand_gene_id = gene_id_feature.strand
             # query1 = db.execute('''
             #           SELECT * FROM features WHERE start >= {0} AND end =< {1}
@@ -298,19 +295,29 @@ def del_gene_records(gffdb, fileIn):
             
             # extract region to be collected
             ROI_within = db.region(seqid=seqID, start=start, end=end, completely_within=True)
+            
             # convert a generator to a list
             ROI_list = list(ROI_within)
-            # get gene/mRNA ID from the mRNA entry
-            geneIDs = [x.attributes['ID'][0] for x in ROI_list if x.featuretype == "mRNA"]
             
+            # get gene/mRNA ID from the mRNA entry on the same strand with the target gene
+            geneIDs = [x.attributes['ID'][0] for x in ROI_list
+                       if x.featuretype == "mRNA" and x.strand == strand_gene_id]
+
             keep_idx = []  # create a list container to save the index to keep in the original gff file or gffdb
-            
+
             for num, i in enumerate(ROI_list):
-                if i.featuretype == "exon" or i.featuretype == "CDS":
-                    if i.attributes["Parent"][0] not in geneIDs:
-                        keep_idx.append(num)
-                elif i.strand != strand_gene_id:
+                # keep all features on the opposite strand
+                if i.strand != strand_gene_id:
                     keep_idx.append(num)
+                    continue
+                else:
+                    # if features are genes or mRNA should  be deleted
+                    if i.featuretype == "gene" or i.featuretype == "mRNA":
+                        continue
+                    else:
+                        # if features are incomplete exon, cds, 3utr, or 5utr should be retained.
+                        if i.attributes["Parent"][0] not in geneIDs:
+                            keep_idx.append(num)
             
             # make the iterator to remove from gffdb
             ROI_list_rm = [element for i, element in enumerate(ROI_list) if i not in keep_idx]
@@ -402,8 +409,6 @@ def run_maker(seqID, prefix, makerbin, keepStore):
     
 def composite_run(lock, seqID):
     logging.info('Start working on {} folder'.format(seqID))  # Chr1_2741699_2750000
-    
-    print(seqID)
     
     with lock:
         seqIDCoordDict = prep_maker_gff(gffdb, seqID, prefixDir)

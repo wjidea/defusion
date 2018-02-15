@@ -14,11 +14,11 @@ import re
 import argparse
 from Bio import SeqIO
 
-parser = argparse.ArgumentParser(description = 'parse BLAST output and write to tab-delimited file')
+parser = argparse.ArgumentParser(description = 'process fasta files to drop fused gene entries')
 
 # parser.add_argument('-i', '--gff_input', help='gff_file',required = True)
 parser.add_argument('-i', '--fasta_in', help='fasta protein or transcript sequences',required = False)
-parser.add_argument('-g', '--gff_in', help='gff file after drop fused genes',required = True)
+parser.add_argument('-g', '--gff_in', help='gff file after defused genes',required = True)
 parser.add_argument('-o', '--fasta_out', help='output fasta',required = True)
 
 # parser.add_argument('-o', '--output', help = 'output AED scores', required = False)

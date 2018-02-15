@@ -4,7 +4,7 @@
 
 # Jan. 18 2018
 # Jie Wang
-# Last update: Jan. 18, 2018
+# Last update: Jan. 19, 2018
 
 # description: run maker standard
 # MAKER standard is to filter out the gene features that does not contain Pfam domain or a less than 1 AED score.
@@ -15,7 +15,8 @@
 # this python script is a remake of Kevin Childs' maker standard pipeline in Perl
 
 import re
-import os, sys
+import os
+import sys
 import shlex
 import argparse
 import logging
@@ -61,8 +62,7 @@ input_validate(input_file_list)
 try:
     if not os.path.exists(out_dir):
         os.mkdir(out_dir)
-    # if not os.path.exists(seqDir):
-    #     os.mkdir(seqDir)
+
 except OSError:
     print('Error in the temp directory')
     sys.exit()
@@ -86,7 +86,7 @@ def run_hmmer(prot_fasta, pfam):
     else:
         cmd1 = '{0} --domE 1e-5 -E 1e-5 --cpu 4 --tblout {1} {2} {3}'.format(hmmer_scan, pfam_out, pfam, prot_fasta)
         cmd1L = shlex.split(cmd1)
-        print cmd1
+        logging.info(cmd1)
         p1 = subprocess.Popen(cmd1L, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, stderr = p1.communicate()
         if stderr:
@@ -105,18 +105,17 @@ def generate_maker_standard_gene_list(hmmer_out, hmmer_cutoff, gff_in):
     aed_prog = re.compile("_AED=([^;]*)")
     gene_id_prog = re.compile("ID=(.*?)[;\n]")
     
-    fh_hmmer = open(hmmer_out, 'rb')
-    fh_gff = open(gff_in, 'rb')
+    fh_hmmer = open(hmmer_out, 'r')
+    fh_gff = open(gff_in, 'r')
 
     
-    # parse hmmer output
+    # parse HMMER output
     for line in fh_hmmer.readlines():
         
         if line.startswith("#"):
             continue
         
-        # replace spaces with a tab
-        line = re.sub("\s+", "\t", line)
+        line = re.sub("\s+", "\t", line) # replace spaces with a tab
         lineL = line.rstrip().split("\t")
         
         gene_id = lineL[2]
@@ -127,12 +126,14 @@ def generate_maker_standard_gene_list(hmmer_out, hmmer_cutoff, gff_in):
 
     # parse gff to get aed score
     for line in fh_gff.readlines():
-        if line.startswith("#"):
-            continue
+    
         if fasta_prog.search(line):
             print("match #fasta")
-            return(maker_std_list)
-        
+            return (maker_std_list)
+    
+        if line.startswith("#"):
+            continue
+
         lineL = line.rstrip().split()
         
         if lineL[1] == 'maker' and lineL[2] == 'mRNA':
@@ -167,6 +168,7 @@ def convert_gene_id(gene_list):
         gene_id_list.append(gene_id)
     return(gene_id_list)
 
+
 def create_maker_standard_gff(gene_list, gff):
     
     logging.info("Start gff standard process")
@@ -181,18 +183,19 @@ def create_maker_standard_gff(gene_list, gff):
     paranet_name_prog = re.compile("Parent=(.*?);Name=(.*?)[;\n]")
     parent_id_prog = re.compile("Parent=(.*?)[;\n]")
     
-    fh_gff = open(gff, "rb")
-    fo_gff = open(out_gff_name, "wb")
+    fh_gff = open(gff, "r")
+    fo_gff = open(out_gff_name, "w")
     
     for line in fh_gff:
-        if line.startswith("#"):
-            fo_gff.write(line)
-            continue
-            
+        
         if fasta_prog.search(line):
             print("match #fasta")
             return(None)
         
+        if line.startswith("#"):
+            fo_gff.write(line)
+            continue
+            
         lineL = line.rstrip().split()
         
         # keep all non-maker features
@@ -221,7 +224,8 @@ def create_maker_standard_gff(gene_list, gff):
                     continue
         
         # keep exon CDS UTR features
-        if lineL[2] == "exon" or lineL[2] == "CDS" or lineL[2] == "UTR":
+        if lineL[2] == "exon" or lineL[2] == "CDS" or lineL[2] == "UTR" or \
+                lineL[2] == "three_prime_UTR" or  lineL[2] == "five_prime_UTR":
             paranet_search = parent_id_prog.search(line)
             if paranet_search:
                 parent_id = paranet_search.group(1)
@@ -234,8 +238,10 @@ def create_maker_standard_gff(gene_list, gff):
 
     logging.info("Finish gff standard process")
     
+    
 def create_maker_standard_fasta(gene_list, fasta):
-    logging.info("Start fasta standard process")
+    logging.info("Start fasta standard process on {}".format(fasta))
+    
     seq_fn = SeqIO.parse(fasta, 'fasta')
     prefix, ext = os.path.splitext(fasta)
     out_fasta_file = out_dir + prefix + ".std.fa"
@@ -244,6 +250,7 @@ def create_maker_standard_fasta(gene_list, fasta):
     for seqrec in seq_fn:
         if seqrec.id in gene_list:
             SeqIO.write(seqrec, seq_fo, 'fasta')
+    
     seq_fo.close()
     logging.info("Finish fasta standard process")
 

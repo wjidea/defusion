@@ -48,7 +48,7 @@ parser = ArgumentParser(description=description_arg, usage=usage_arg)
 parser.add_argument('-i', '--input', help='transcripts in [fasta] format', required=True)
 parser.add_argument('-g', '--gffin', help='input gff from MAKER2 output', required=True)
 parser.add_argument('-d', '--gffdb', help='input gffdb sqlite from previous run', required=False, default=None)
-parser.add_argument('-n', '--numOfProcess', help='number of processes to be included', default=2, required=False)
+parser.add_argument('-n', '--numOfProcess', help='number of processes to be included', default=4, required=False)
 parser.add_argument('-b', '--blastn', help='path to executable blastn', default='', required=False)
 parser.add_argument('-p', '--prefix', help='prefix dirctory', default='tmp/', required=False)
 parser.add_argument('-f', '--force', help='force overwrite existing output', action='store_true', required=False)
@@ -60,7 +60,7 @@ inFile = args.input
 # outPath = args.outpath
 # outBlast = args.blastOut
 numOfProcess = int(args.numOfProcess)
-# blastn = args.blastn
+blastn = args.blastn
 gffIn = args.gffin
 gffdb = args.gffdb
 prefixDir = os.path.join(args.prefix,'')
@@ -69,13 +69,6 @@ inFilesL = [inFile]
 # outFilesL = []
 
 # TODO add a function to validate input file, such as fasta and gff
-
-# check blastn in path
-if not which("blastn"):
-    blastn = blastn = args.blastn
-else:
-    logging.error('BLASTN executable is not in path\n module load BLAST+\n')
-    sys.exit()
 
 if args.verbose:
     logging.basicConfig(level=logging.DEBUG, format='(%(processName)-10s) %(asctime)s %(message)s')
@@ -92,19 +85,19 @@ except OSError:
     logging.error('Error in the temp directory')
     sys.exit()
 
-try:
-    # if blastn == '':
-    #     blastn = '/opt/software/BLAST+/2.2.30--GCC-4.4.7/bin/blastn' #settings for lab server
-    if not os.path.isfile(blastn):
-        logging.error('blastn is not in the specified path')
-        sys.exit()
-    if not os.path.isfile(gffIn):
-        logging.error('gff file is not in the specified path')
-        sys.exit()
-        
-except ValueError:
-    logging.error('blastn is not in the specified path')
+if not os.path.isfile(gffIn):
+    logging.error('gff file is not in the specified path')
     sys.exit()
+
+# check executables in $PATH
+
+if not blastn: # test makerbin is provided
+    if not which("blastn"):
+        logging.error('blastn executable is not in path\n module load BLAST+\n')
+        sys.exit()
+    else:
+        blastn = which("blastn")
+        logging.info("blastn is loaded in $PATH")
 
 
 # check input file list
@@ -199,6 +192,38 @@ def run_blast_parallel(seqFileL):
         logging.info('{}\n'.format(geneOutL))
     return(geneOutL)
 
+
+# todo add a function to only keep maker and repeat mask feature in the gff file, significantly readuce running time
+def rm_gff_features(gff_in):
+    '''
+    rm features from exonerate or gene prediction tools
+    :param gffin: input gff file
+    :return: modified gff file without evidence
+    '''
+    init = 0
+    fh_gff = open(gff_in, 'rb')
+    fo_gff = open(prefixDir + "modified_annotation.gff", 'wb')
+    
+    for line in fh_gff.readlines():
+        
+        if line.startswith("#"):
+            fo_gff.write(line)
+            continue
+        
+        lineL = line.rstrip().split()
+        
+        entry_source = lineL[2]
+        
+        
+    
+    
+    fo_gff.close()
+    fh_gff.close()
+    
+    
+    
+
+
 def filter_gff(geneL, gff):
     """
     :param geneL: list of candidate genes
@@ -244,7 +269,7 @@ def filter_gff(geneL, gff):
         geneDict[gene] = [g_seqid, g_start, g_end, g_exon_counter] # seqid, start, end
     
     #fixme 1 if the gene lenth (including introns) is way longer than the blastn query hit? should I delete?
-    #fixme 2 example: A07:23319901..23327780 (7.88 Kb); match lenth and gene length
+    #fixme 2 example: A07:23319901..23327780 (7.88 Kb); match length and gene length
 
     logging.debug('start writing gene coordinate file')
     with open(prefixDir+'geneCoordinate.txt', 'wb') as f:
