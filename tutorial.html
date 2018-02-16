@@ -66,7 +66,7 @@
             
             
               <div class="version">
-                0.02
+                0.03
               </div>
             
           
@@ -180,6 +180,44 @@
 </div>
 <div class="section" id="example-rice-chromosome-9">
 <h2>3.2. Example - rice chromosome 9<a class="headerlink" href="#example-rice-chromosome-9" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic">
+<li><p class="first">detect fused gene candidates:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="nb">bin</span><span class="o">/</span><span class="mi">1</span><span class="n">_detect_fused_gene</span><span class="o">.</span><span class="n">py</span> <span class="o">-</span><span class="n">i</span> <span class="n">resources</span><span class="o">/</span><span class="n">rice_chr9_transcript</span><span class="o">.</span><span class="n">fa</span> <span class="o">-</span><span class="n">g</span> <span class="n">resources</span><span class="o">/</span><span class="n">rice_chr9</span><span class="o">.</span><span class="n">gff</span> <span class="o">-</span><span class="n">n</span> <span class="mi">30</span> <span class="o">-</span><span class="n">p</span> <span class="n">chr9_S1R2</span>
+</pre></div>
+</div>
+</li>
+<li><p class="first">split fused gene and locally re-annotation:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="nb">bin</span><span class="o">/</span><span class="mi">2</span><span class="n">_extract_to_maker</span><span class="o">.</span><span class="n">py</span> <span class="o">-</span><span class="n">i</span> <span class="n">resources</span><span class="o">/</span><span class="n">rice_chr9</span><span class="o">.</span><span class="n">fa</span> <span class="o">-</span><span class="n">d</span> <span class="n">chr9_S1R1</span><span class="o">/</span><span class="n">gff</span><span class="o">.</span><span class="n">db</span> <span class="o">-</span><span class="n">c</span> <span class="n">chr9_S1R1</span><span class="o">/</span><span class="n">break_coordinates</span><span class="o">.</span><span class="n">brk</span> \
+<span class="o">-</span><span class="n">t</span> <span class="n">resources</span><span class="o">/</span><span class="n">rice_chr9_ctl</span><span class="o">/</span> <span class="o">-</span><span class="n">n</span> <span class="mi">28</span> <span class="o">-</span><span class="n">p</span> <span class="n">chr9_S2R1</span>
+</pre></div>
+</div>
+</li>
+<li><p class="first">drop fused gene entries from original transcript and protein sequence fasta files:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">mkdir</span> <span class="n">chr9_post_process</span>
+
+<span class="n">python</span> <span class="nb">bin</span><span class="o">/</span><span class="mi">3</span><span class="n">_process_fasta_file</span><span class="o">.</span><span class="n">py</span> <span class="o">-</span><span class="n">i</span> <span class="n">resources</span><span class="o">/</span><span class="n">rice_chr9_transcript</span><span class="o">.</span><span class="n">fa</span> <span class="o">-</span><span class="n">g</span> <span class="n">chr9_S2R1</span><span class="o">/</span><span class="n">gene_features_wo_fused</span><span class="o">.</span><span class="n">gff</span>  \
+<span class="o">-</span><span class="n">o</span> <span class="n">chr9_post_process</span><span class="o">/</span><span class="n">rice_chr9_transcript_drop_fused</span><span class="o">.</span><span class="n">fa</span>
+
+<span class="n">python</span> <span class="nb">bin</span><span class="o">/</span><span class="mi">3</span><span class="n">_process_fasta_file</span><span class="o">.</span><span class="n">py</span> <span class="o">-</span><span class="n">i</span> <span class="n">resources</span><span class="o">/</span><span class="n">rice_chr9_protein</span><span class="o">.</span><span class="n">fa</span> <span class="o">-</span><span class="n">g</span> <span class="n">chr9_S2R1</span><span class="o">/</span><span class="n">gene_features_wo_fused</span><span class="o">.</span><span class="n">gff</span>  \
+<span class="o">-</span><span class="n">o</span> <span class="n">chr9_post_process</span><span class="o">/</span><span class="n">rice_chr9_protein_drop_fused</span><span class="o">.</span><span class="n">fa</span>
+</pre></div>
+</div>
+</li>
+<li><p class="first">run maker standard on defused gene set. MAKER standard is a procedure to get rid of low-quality gene models:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="nb">bin</span><span class="o">/</span><span class="mi">4</span><span class="n">_run_maker_standard</span><span class="o">.</span><span class="n">py</span> <span class="o">-</span><span class="n">t</span> <span class="n">merged_transcripts</span><span class="o">.</span><span class="n">fa</span> <span class="o">-</span><span class="n">p</span> <span class="n">merged_protein</span><span class="o">.</span><span class="n">fa</span> <span class="o">-</span><span class="n">g</span> <span class="n">merged_gff</span><span class="o">.</span><span class="n">all</span><span class="o">.</span><span class="n">mod</span><span class="o">.</span><span class="n">gff</span> \
+<span class="o">-</span><span class="n">a</span> <span class="n">Pfam</span><span class="o">/</span><span class="n">Pfam</span><span class="o">-</span><span class="n">A</span><span class="o">.</span><span class="n">hmm</span> <span class="o">-</span><span class="n">o</span> <span class="n">chr9_post_process</span><span class="o">/</span>
+</pre></div>
+</div>
+</li>
+<li><p class="first">generate AED score improvement plot:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="nb">bin</span><span class="o">/</span><span class="mi">5</span><span class="n">_generate_report</span><span class="o">.</span><span class="n">py</span> <span class="o">-</span><span class="n">b</span> <span class="n">chr9_S1R1</span><span class="o">/</span><span class="n">break_coordinates</span><span class="o">.</span><span class="n">brk</span> \
+<span class="o">-</span><span class="n">i</span> <span class="n">resources</span><span class="o">/</span><span class="n">rice_chr9</span><span class="o">.</span><span class="n">gff</span> \
+<span class="o">-</span><span class="n">g</span> <span class="n">chr9_S1R1</span><span class="o">/</span><span class="n">merged_defused</span><span class="o">.</span><span class="n">all</span><span class="o">.</span><span class="n">mod</span><span class="o">.</span><span class="n">std</span><span class="o">.</span><span class="n">gff</span> \
+<span class="o">-</span><span class="n">o</span> <span class="n">chr9_post_process</span><span class="o">/</span><span class="n">chr9</span>
+</pre></div>
+</div>
+</li>
+</ol>
 </div>
 </div>
 
@@ -205,7 +243,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2017, Jie Wang and Kevin Childs.
+        &copy; Copyright 2018, Jie Wang and Kevin Childs.
 
     </p>
   </div>

@@ -1,6 +1,11 @@
 Change log
 ==========
 
+Changes in v 0.03
+-----------------
+* fix a bug in feature deletion step (upgrade required)
+* minor performance improvement
+
 Changes in v 0.02
 -----------------
 * add function to allow multiple break points in one gene/fragment
