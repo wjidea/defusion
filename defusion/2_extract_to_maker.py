@@ -310,12 +310,14 @@ def del_gene_records(gffdb, fileIn):
                 if i.strand != strand_gene_id:
                     keep_idx.append(num)
                     continue
+                elif i.source != "maker": # retain all other features
+                    continue
                 else:
                     # if features are genes or mRNA should  be deleted
                     if i.featuretype == "gene" or i.featuretype == "mRNA":
                         continue
                     else:
-                        # if features are incomplete exon, cds, 3utr, or 5utr should be retained.
+                        # if features are incomplete exon, cds, 3utr, or 5utr should be kept.
                         if i.attributes["Parent"][0] not in geneIDs:
                             keep_idx.append(num)
             
@@ -587,14 +589,12 @@ def main():
     flat_multiple_breaks(coordIn, 'flat_break.txt')
     seqNamesL = run_extract_seq_parallel(prefixDir + 'flat_break.txt')
     # seqNamesL = map(os.path.basename, glob.glob(prefixDir + 'Ro*')) # debugging purpose
-
     seqCoordL = run_maker_parallel(seqNamesL)
     del_gene_records(gffdb, coordIn)
 
 ################################################################################################
-    # This part was used solely to test the gffdb update part
-    #
-    # seqFolderL = glob.glob(prefixDir + '/Ro*')
+    # #This part was used solely to test the gffdb update part
+    # seqFolderL = glob.glob(prefixDir + '/Chr9*')
     # seqFolderL = map(os.path.basename, seqFolderL)
     # def parse_folder_name(folder_name):
     #     folder_list = folder_name.split('_')
@@ -604,7 +604,7 @@ def main():
     #     return({folder_name:seq_adj})
     #
     # seqCoordL = map(parse_folder_name, seqFolderL)
-################################################################################################
+###############################################################################################
     
     for seqDict in seqCoordL:
         update_gff(gffdb, prefixDir, seqDict)

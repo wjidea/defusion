@@ -1,6 +1,11 @@
 Change log
 ==========
 
+Changes in v 0.04
+-----------------
+* add new functions to create AED improvement plot
+* 
+
 Changes in v 0.03
 -----------------
 * fix a bug in feature deletion step (upgrade required)

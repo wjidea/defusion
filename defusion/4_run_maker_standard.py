@@ -176,7 +176,7 @@ def create_maker_standard_gff(gene_list, gff):
     mRNA_name_set = set()
     
     # compile regex
-    out_gff_name = out_dir + re.sub("gff$", "std.gff", gff)
+    out_gff_name = out_dir + re.sub("gff$", "std.gff", os.path.basename(gff))
     
     fasta_prog = re.compile("#FASTA")
     gene_name_prog = re.compile("Name=(.*?)[;\n]")
@@ -243,7 +243,7 @@ def create_maker_standard_fasta(gene_list, fasta):
     logging.info("Start fasta standard process on {}".format(fasta))
     
     seq_fn = SeqIO.parse(fasta, 'fasta')
-    prefix, ext = os.path.splitext(fasta)
+    prefix, ext = os.path.splitext(os.path.basename(fasta))
     out_fasta_file = out_dir + prefix + ".std.fa"
     seq_fo = open(out_fasta_file, 'wb')
     

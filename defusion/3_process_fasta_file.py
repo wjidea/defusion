@@ -37,7 +37,7 @@ def extract_geneid_AED(gff_file):
     :return:
     """
     fi_gff = open(gff_file, 'r')
-    aed_prog = re.compile("_AED=([^;]*)")
+    # aed_prog = re.compile("_AED=([^;]*)")
     gene_id_prog = re.compile("ID=(.*?)[;\n]")
     goi_list = []
     
@@ -46,8 +46,8 @@ def extract_geneid_AED(gff_file):
         
         if len(line_L) > 3 and line_L[2] == "mRNA":
             gene_id_search = gene_id_prog.search(line)
-            aed_search = aed_prog.search(line)
-            print gene_id_search.group(1), aed_search.group(1)
+            # aed_search = aed_prog.search(line)
+            # print gene_id_search.group(1), aed_search.group(1)
             goi_list.append(gene_id_search.group(1))
         else:
             continue
@@ -60,8 +60,11 @@ def extract_geneid_AED(gff_file):
 def drop_fasta_entries(fasta_file, keep_list, fasta_out):
     seq_fn = SeqIO.parse(fasta_file, 'fasta')
     seq_fo = open(fasta_out, 'wb')
+    print keep_list
     for seqrec in seq_fn:
+        print seqrec.id
         if seqrec.id in keep_list:
+            print seqrec
             SeqIO.write(seqrec, seq_fo,'fasta')
     
     seq_fo.close()

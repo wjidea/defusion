@@ -4,17 +4,20 @@
 
 # Jan 08, 2018
 # Jie Wang
-# Last update: Feb 14, 2018
+# Last update: Feb 15, 2018
 
 
 # extract AED scores from old and defused gffs files
+# make graphs
 
 
-import re
+import re, os
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Agg')
 
+import matplotlib.pyplot as plt
 from argparse import ArgumentParser
 
 ####### Header file ########
@@ -24,8 +27,8 @@ usage_arg = 'python 5_generate_report -i original_MAKER.gff -g merged_defused.al
 
 parser = ArgumentParser(description=description_arg, usage=usage_arg)
 
-parser.add_argument('-i', '--gold', help='Original MAKER gff file', required=True)
-parser.add_argument('-g', '--gdef', help='defused GFF file', required=True)
+parser.add_argument('-i', '--ori', help='Original MAKER gff file', required=True)
+parser.add_argument('-g', '--de', help='defused GFF file', required=True)
 parser.add_argument('-b', '--brk', help='brk file', required=True)
 parser.add_argument('-o', '--out', help='output prefix for output files', required=True)
 args = parser.parse_args()
@@ -42,7 +45,7 @@ def extract_geneid_AED(gff_file, sublist = None):
     """
     fi_gff = open(gff_file, 'r')
     aed_prog = re.compile("_AED=([^;]*)")
-    gene_id_prog = re.compile("ID=(.*?)[;\n]")
+    gene_id_prog = re.compile("ID=(.*?)[;\n]") # non-greedy match
     aed_list = []
     
     for line in fi_gff.readlines():
@@ -94,7 +97,6 @@ def bin_aed_score(sorted_aed_list, outfile, label, num_bin = 40):
     
     with open(outfile, 'wb') as fh:
         for i in range(num_bin):
-            print(col1[i], col2[i], col3[i])
             out_str = "{:}\t{}\t{}\t{}\n".format(col1[i], col2[i], col3[i], label)
             fh.write(out_str)
 
@@ -103,7 +105,8 @@ def draw_aed_plot(fused_file, defused_file, out_prefix):
     
     fused_aed_data = pd.read_table(fused_file, header=None, names=['aed', 'gene_counts', 'norm_gene', 'category'])
     defused_aed_data = pd.read_table(defused_file, header=None, names=['aed', 'gene_counts', 'norm_gene', 'category'])
-
+    title_prefix = os.path.basename(out_prefix)
+    
     fig, ax = plt.subplots()
 
     color_fuse, color_defuse_std = 'blue', 'red'
@@ -116,7 +119,7 @@ def draw_aed_plot(fused_file, defused_file, out_prefix):
     ax.set(xlim=[0, 1.1])
     ax.set_xlabel('Annotation edit distance (AED)')
     ax.set_ylabel('Percentage of genes [0-1]')
-    ax.set_title('AED scores improvement after defusion - {}'.format(out_prefix), fontweight="bold",
+    ax.set_title('AED scores improvement after defusion - {}'.format(title_prefix), fontweight="bold",
                  fontsize=14, y=1.0)
 
     # plt.show()
@@ -124,8 +127,8 @@ def draw_aed_plot(fused_file, defused_file, out_prefix):
     
     
 def main():
-    old_gff = args.gold
-    defuse_gff = args.gdef
+    old_gff = args.ori
+    defuse_gff = args.de
     in_brk = args.brk
     prefix = args.out
     

@@ -3,7 +3,7 @@
 # defuse_gene.py
 
 # Oct. 14 2016
-# Last update: Jan. 10, 2018
+# Last update: Feb. 15, 2018
 # Jie Wang
 
 # description: Identify the mis-annotated genes in the MAKER annotation pipeline,
@@ -75,16 +75,6 @@ if args.verbose:
 else:
     logging.basicConfig(level=logging.INFO, format='(%(processName)-10s) %(asctime)s %(message)s')
 
-# make tmp directory
-try:
-    if not os.path.exists(prefixDir):
-        os.mkdir(prefixDir)
-    if not os.path.exists(seqDir):
-        os.mkdir(seqDir)
-except OSError:
-    logging.error('Error in the temp directory')
-    sys.exit()
-
 if not os.path.isfile(gffIn):
     logging.error('gff file is not in the specified path')
     sys.exit()
@@ -107,23 +97,30 @@ for inputFile in inFilesL:
         sys.exit()
 
 # # check if output file is present
-# if args.force:
-#     pass
-# else:
-#     for outFile in outFilesL:
-#         if os.path.isfile(outFile):
-#             print('output file {0} already exists'.format(outFile))
-#             sys.exit()
+if args.force:
+    pass
+else:
+    if os.path.isdir(prefixDir):
+        print('output file {0} already exists'.format(prefixDir))
+        sys.exit()
+
+# make tmp directory
+try:
+    if not os.path.exists(prefixDir):
+        os.mkdir(prefixDir)
+    if not os.path.exists(seqDir):
+        os.mkdir(seqDir)
+except OSError:
+    logging.error('Error in the temp directory')
+    sys.exit()
 
 ######## scripts start from here #########
 
 def seprate_fasta(inFile):
-    counter = 0
     # outPath = outPath.rstrip('/')
     outPath = prefixDir + 'seqs/'
     allSeq = SeqIO.parse(inFile, 'fasta')
     for seqRec in allSeq:
-        counter += 1
         SeqIO.write(seqRec, '{0}{1}.fasta'.format(outPath, seqRec.id), 'fasta')
 
 
@@ -164,10 +161,12 @@ def run_blast_parallel(seqFileL):
     pool = multiprocessing.Pool(numOfProcess)
     manager = multiprocessing.Manager()
     lock = manager.Lock()
-
+    
     geneListFile=  prefixDir+'selfBlastOut.txt'
     fusedGeneL = []
     geneOutL = []
+    
+    print seqFileL
     
     if os.path.exists(geneListFile):
         # if selfBLAST step is done, read the results then
@@ -193,36 +192,41 @@ def run_blast_parallel(seqFileL):
     return(geneOutL)
 
 
-# todo add a function to only keep maker and repeat mask feature in the gff file, significantly readuce running time
-def rm_gff_features(gff_in):
+def rm_gff_features(gff_in, prefixDir):
     '''
     rm features from exonerate or gene prediction tools
+    Only keep maker
     :param gffin: input gff file
     :return: modified gff file without evidence
     '''
-    init = 0
+    logging.info("remove ununsed features from gff file to increase load speed")
+    
     fh_gff = open(gff_in, 'rb')
     fo_gff = open(prefixDir + "modified_annotation.gff", 'wb')
     
     for line in fh_gff.readlines():
         
-        if line.startswith("#"):
+        if line.startswith("##FASTA"):
+            break
+        
+        if line.startswith("##gff-version 3"):
             fo_gff.write(line)
+            continue
+        elif line.startswith("##"):
             continue
         
         lineL = line.rstrip().split()
         
-        entry_source = lineL[2]
+        entry_source = lineL[1]
         
-        
-    
+        if entry_source == "repeatmasker" or entry_source == "maker" or entry_source == r".":
+            fo_gff.write(line)
     
     fo_gff.close()
     fh_gff.close()
     
+    return (prefixDir + "modified_annotation.gff")
     
-    
-
 
 def filter_gff(geneL, gff):
     """
@@ -252,7 +256,6 @@ def filter_gff(geneL, gff):
     
     for gene in geneL: # loop through the list and collect contig info
         gene_fused = db[gene]
-        print(gene_fused)
         g_start = gene_fused.start
         g_end = gene_fused.end
         g_seqid = gene_fused.seqid
@@ -274,7 +277,6 @@ def filter_gff(geneL, gff):
     logging.debug('start writing gene coordinate file')
     with open(prefixDir+'geneCoordinate.txt', 'wb') as f:
         for key in geneDict:
-            print(key, geneDict[key])
             f.write('{0}\t{1}:{2}..{3}\t{4}\n'.format(key, *geneDict[key]))
 
     return(geneDict)
@@ -332,7 +334,7 @@ def break_point(geneDict):
             seqEnd = geneFeatL[2] + 50
             # this is simple version just to demonstrate the format settings
             point2Break = int((int(seqEnd) - int(seqStart))/2) + int(seqStart)
-            lineStr = '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\n'.format(seqID, gene, seqStart, seqEnd, point2Break, blast_dict[gene])
+            lineStr = '{0}\t{1}\t{2}\t{3}\t{4}\n'.format(seqID, gene, seqStart, seqEnd, point2Break, blast_dict[gene])
             fh.write(lineStr)
         # todo more accurate version for determining mid point need to learn more the BLAST results to detemine how
         # many repeats in the regions
@@ -349,11 +351,13 @@ def chimera_fuse():
 
 
 def main():
-    if os.listdir(seqDir) == []:
-        seprate_fasta(inFile)
+    seprate_fasta(inFile)
     seqFileL = glob.glob(prefixDir + 'seqs/*.fasta')
+
     geneL = run_blast_parallel(seqFileL)
-    geneDict = filter_gff(geneL, gffIn)
+    
+    modGFF = rm_gff_features(gffIn, prefixDir)
+    geneDict = filter_gff(geneL, modGFF)
     break_point(geneDict)
 
 if __name__ == '__main__':
