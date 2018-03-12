@@ -4,7 +4,7 @@ Change log
 Changes in v 0.04
 -----------------
 * add new functions to create AED improvement plot
-* 
+* implement MAKER standard step
 
 Changes in v 0.03
 -----------------
