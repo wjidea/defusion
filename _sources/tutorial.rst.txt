@@ -54,15 +54,14 @@ Example - rice chromosome 9
 	mv chr9_S2R1/gene_features_wo_fused.gff chr9_post_process/
 	
 	cd chr9_post_process
+	
 	cat gene_features_wo_fused.gff merged_defused.all.mod.std.gff > chr9_V1.gff
 	cat rice_chr9_transcript_drop_fused.fa merged_defused_transcripts.std.fa > chr9_V1_transcripts.fa
 	cat rice_chr9_protein_drop_fused.fa merged_defused_protein.std.fa > chr9_V1_protein.fa
 	
-7. DONE
+7. DONE Final outputs::
 	
-	Final outputs::
-	
-		chr9_V1.gff
-		chr9_V1_transcripts.fa
-		chr9_V1_protein.fa
+	chr9_V1.gff
+	chr9_V1_transcripts.fa
+	chr9_V1_protein.fa
 	
