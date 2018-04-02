@@ -89,7 +89,7 @@ def bin_aed_score(sorted_aed_list, outfile, label, num_bin = 40):
     
     sorted_aed_list = map(float, sorted_aed_list)
     hist, edges = np.histogram(sorted_aed_list, bins=num_bin, range=[0,1])
-    edges = np.delete(edges, -2)
+    edges = np.delete(edges, -2) # drop one edge to make the hist and edge length match
     
     col1 = edges
     col2 = np.cumsum(hist)

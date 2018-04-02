@@ -49,10 +49,15 @@ parser.add_argument('-i', '--input', help='transcripts in [fasta] format', requi
 parser.add_argument('-g', '--gffin', help='input gff from MAKER2 output', required=True)
 parser.add_argument('-d', '--gffdb', help='input gffdb sqlite from previous run', required=False, default=None)
 parser.add_argument('-n', '--numOfProcess', help='number of processes to be included', default=4, required=False)
+parser.add_argument('--identity_threshold', help='identity threshold between 5 end and 3 end',
+                    default=0.25, required=False)
 parser.add_argument('-b', '--blastn', help='path to executable blastn', default='', required=False)
 parser.add_argument('-p', '--prefix', help='prefix dirctory', default='tmp/', required=False)
 parser.add_argument('-f', '--force', help='force overwrite existing output', action='store_true', required=False)
 parser.add_argument('-v', '--verbose', help='increase verbosity', action='store_true')
+
+
+
 args = parser.parse_args()
 
 # check if the input fild existed
@@ -143,7 +148,8 @@ def self_BLAST(lock, seq):
     logging.debug('start running selfblast, {}'.format(seq))
     
     if len(blastHits) > 2:
-        if float(blastHitsSplit[1][2]) > (float(blastHitsSplit[0][1]) / 4.0):
+        # if float(blastHitsSplit[1][2]) > (float(blastHitsSplit[0][1]) * 0.25):
+        if float(blastHitsSplit[1][2]) > (float(blastHitsSplit[0][1]) * args.identity_threshold):
             with lock:
                 with open(prefixDir + 'selfBlastOut.txt', 'ab') as handle:
                     
@@ -165,8 +171,6 @@ def run_blast_parallel(seqFileL):
     geneListFile=  prefixDir+'selfBlastOut.txt'
     fusedGeneL = []
     geneOutL = []
-    
-    print seqFileL
     
     if os.path.exists(geneListFile):
         # if selfBLAST step is done, read the results then
@@ -206,7 +210,7 @@ def rm_gff_features(gff_in, prefixDir):
     
     for line in fh_gff.readlines():
         
-        if line.startswith("##FASTA"):
+        if line.startswith("##FASTA") or line.startswith(">"):
             break
         
         if line.startswith("##gff-version 3"):
@@ -331,6 +335,11 @@ def break_point(geneDict):
             # ROI = db.region(seqid=geneFeatL[0], start=geneFeatL[1], end=geneFeatL[2], completely_within=False)
             seqID = geneFeatL[0]
             seqStart = geneFeatL[1] - 50 # increase the boundaries to expand the two borders
+            
+            # avoid less than 0 issue
+            if seqStart <= 0 :
+                seqStart = 1
+            
             seqEnd = geneFeatL[2] + 50
             # this is simple version just to demonstrate the format settings
             point2Break = int((int(seqEnd) - int(seqStart))/2) + int(seqStart)

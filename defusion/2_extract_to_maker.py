@@ -24,6 +24,7 @@ import fileinput
 import glob
 import gffutils
 import multiprocessing
+import re
 
 
 from shutil import copy2
@@ -34,7 +35,7 @@ from Bio.SeqRecord import SeqRecord
 from utility_functions import which, fix_path_slash, log_err, parse_SeqID, \
     bioperl_loaded, check_coord, coord_error
 
-####### Header file ########
+####### Header file #######q#
 description_arg = 'This is the second step of the defusion pipeline: 1) remove the original fused annotation' \
                   '2) run new MAKER session reannotate the fused annotation region'
 usage_arg = 'python 2_extract_to_maker.py -h'
@@ -107,8 +108,24 @@ else:
 
 ######## scripts start from here #########
 
+
+def extract_min_contig_len(ctl_path=ctlPath):
+    ctl_opts = open(ctl_path + "maker_opts.ctl", 'rb')
+    
+    min_prog = re.compile("^min_contig=([^#]*)")
+    for line in ctl_opts.readlines():
+        line_match = min_prog.search(line)
+        if line_match:
+            min_contig_size = int(line_match.group(1).strip())
+            logging.info('minimum contig size = {}'.format(min_contig_size))
+            return(min_contig_size)
+            
+    ctl_opts.close()
+
 # todo write a script to detect possible overlap break point coordinates
 def flat_multiple_breaks(breakfile, outfile):
+    min_contig_len = extract_min_contig_len(ctlPath)
+
     fo = open(prefixDir + outfile, 'wb')
     coord_error_bool = False
     with open(breakfile, 'r') as fn:
@@ -127,16 +144,20 @@ def flat_multiple_breaks(breakfile, outfile):
             for idx in range((len(coords_list) - 1)):
                 coord_start = coords_list[idx]
                 coord_end = coords_list[idx + 1]
-                out_list = lineL[0:2] + [coord_start, coord_end]
-                out_list = map(str, out_list)
-                out_line = '\t'.join(out_list) + '\n'
-                fo.write(out_line)
                 
-                # check if gene range large than 100k
-                error_in_coord = check_coord(prefixDir, lineL[0], coord_start, coord_end)
-                if not error_in_coord:
-                    coord_error_bool = True
-    
+                contig_len = abs(coord_end - coord_start)
+                if contig_len > min_contig_len:
+                    out_list = lineL[0:2] + [coord_start, coord_end]
+                    out_list = map(str, out_list)
+                    out_line = '\t'.join(out_list) + '\n'
+                    fo.write(out_line)
+                    
+                    # check if gene range large than 100k
+                    error_in_coord = check_coord(prefixDir, lineL[0], coord_start, coord_end)
+                    if not error_in_coord:
+                        coord_error_bool = True
+                else:
+                    continue
     # validate error presence and decide ignore or not
     coord_error(coord_error_bool)
     
@@ -355,9 +376,9 @@ def prep_opt_ctl(seqID, prefix, ctlPath):
 
         for line in fileInput:
             if line.startswith('genome='):
-                print('genome={0}'.format(seqFile)),
+                print('genome={0}\n'.format(seqFile)),
             elif line.startswith('maker_gff='):
-                print('maker_gff={0}'.format(gffFile))
+                print('maker_gff={0}\n'.format(gffFile))
             else:
                 print(line),
     except IOError:
@@ -366,6 +387,7 @@ def prep_opt_ctl(seqID, prefix, ctlPath):
     finally:
         fileInput.close()
         logging.info('[FINISH] prep maker opt control file')
+     
      
 def run_maker(seqID, prefix, makerbin, keepStore):
     os.chdir(prefix + seqID)
@@ -409,6 +431,7 @@ def run_maker(seqID, prefix, makerbin, keepStore):
         stdout, stderr = p4.communicate()
         log_err('rm MAKER datastore and blastMPI', seqID, stdout, stderr)
     
+    
 def composite_run(lock, seqID):
     logging.info('Start working on {} folder'.format(seqID))  # Chr1_2741699_2750000
     
@@ -420,9 +443,7 @@ def composite_run(lock, seqID):
     return(seqIDCoordDict)
     
 def run_maker_parallel(seqNameL):
-    
-    print(seqNameL)
-    
+   
     pool = multiprocessing.Pool(numProcess)
     manager = multiprocessing.Manager()
     lock = manager.Lock()
