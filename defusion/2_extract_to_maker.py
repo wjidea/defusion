@@ -468,6 +468,7 @@ def run_maker_parallel(seqNameL):
 
 def update_gff(gffdb, prefixDir, seqIDCoord):
     '''
+    change the gff file and adjust the coordinate in the genome context
     output to new gff file
     :return:
     '''
@@ -480,11 +481,10 @@ def update_gff(gffdb, prefixDir, seqIDCoord):
     newGffFile = '{0}{1}/{1}.all.gff'.format(prefixDir, seqID)
     modGffFile = '{0}{1}/{1}.all.mod.gff'.format(prefixDir, seqID)
     
-    # TODO if annotation file is not there, not update the file.
-    
     if os.path.isfile(modGffFile):
         pass
-    else:
+    elif os.path.isfile(newGffFile):
+    
         FILE_IN = open(newGffFile, 'rb')
         FILE_OUT = open(modGffFile, 'wb')
         adjStart = seqIDCoord[seqID]
@@ -509,7 +509,9 @@ def update_gff(gffdb, prefixDir, seqIDCoord):
         FILE_IN.close()
         FILE_OUT.close()
     
-    logging.info('Complete update annotation db {}'.format(seqIDCoord))
+        logging.info('Complete update annotation db {}'.format(seqIDCoord))
+    else:
+        logging.warning('maker gff file is not present {}'.format(seqIDCoord))
     
     # load modified gff file to db
     # newGffdb = gffutils.create_db(modGffFile, dbfn=prefixDir + seqID + '.all.mod.gff.db',
