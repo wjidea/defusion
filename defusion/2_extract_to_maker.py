@@ -292,11 +292,15 @@ def del_gene_records(gffdb, fileIn):
     
     # load gffdb sqlite3
     try:
+        if os.path.isfile(gffdb + ".bak"):
+            os.remove(gffdb)
+            os.rename(gffdb + ".bak", gffdb)
+        
         db = gffutils.FeatureDB(gffdb)
     except:
         logging.warning('error with sqlite database connection')
         raise
-    
+ 
     # parse breakpoint file by line
     with open(fileIn, 'rb') as fh:
         for line in fh.readlines():
@@ -603,6 +607,8 @@ def write_gff(gffdb):
         # log_err('MAKER', seqID, stdout, stderr)
     
     logging.info('[FINISH] write to final defused gff')
+
+    logging.info('[FINISH] deFusion step 2 is complete')
     
     
 def main():
