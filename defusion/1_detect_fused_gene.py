@@ -38,87 +38,6 @@ from Bio import SeqIO
 from functools import partial # used in multipleprocess manager lock, pass lock to function
 from Bio.Blast.Applications import NcbiblastnCommandline
 
-
-####### Header file ########
-
-description_arg = 'First step to detect the tandem duplicated fused gene annoatation'
-usage_arg = 'python 1_detect_fused_gene -h to show help information'
-
-parser = ArgumentParser(description=description_arg, usage=usage_arg)
-parser.add_argument('-i', '--input', help='transcripts in [fasta] format', required=True)
-parser.add_argument('-g', '--gffin', help='input gff from MAKER2 output', required=True)
-parser.add_argument('-d', '--gffdb', help='input gffdb sqlite from previous run', required=False, default=None)
-parser.add_argument('-n', '--numOfProcess', help='number of processes to be included', default=4, required=False)
-parser.add_argument('--identity_threshold', help='identity threshold between 5 end and 3 end',
-                    default=0.25, required=False)
-parser.add_argument('-b', '--blastn', help='path to executable blastn', default='', required=False)
-parser.add_argument('-p', '--prefix', help='prefix dirctory', default='tmp/', required=False)
-parser.add_argument('-f', '--force', help='force overwrite existing output', action='store_true', required=False)
-parser.add_argument('-v', '--verbose', help='increase verbosity', action='store_true')
-
-
-
-args = parser.parse_args()
-
-# check if the input fild existed
-inFile = args.input
-# outPath = args.outpath
-# outBlast = args.blastOut
-numOfProcess = int(args.numOfProcess)
-blastn = args.blastn
-gffIn = args.gffin
-gffdb = args.gffdb
-prefixDir = os.path.join(args.prefix,'')
-seqDir = os.path.join(prefixDir+'seqs', '')
-inFilesL = [inFile]
-# outFilesL = []
-
-# TODO add a function to validate input file, such as fasta and gff
-
-if args.verbose:
-    logging.basicConfig(level=logging.DEBUG, format='(%(processName)-10s) %(asctime)s %(message)s')
-else:
-    logging.basicConfig(level=logging.INFO, format='(%(processName)-10s) %(asctime)s %(message)s')
-
-if not os.path.isfile(gffIn):
-    logging.error('gff file is not in the specified path')
-    sys.exit()
-
-# check executables in $PATH
-
-if not blastn: # test makerbin is provided
-    if not which("blastn"):
-        logging.error('blastn executable is not in path\n module load BLAST+\n')
-        sys.exit()
-    else:
-        blastn = which("blastn")
-        logging.info("blastn is loaded in $PATH")
-
-
-# check input file list
-for inputFile in inFilesL:
-    if not os.path.isfile(inputFile):
-        logging.error('Input file {0} does not exist!'.format(inputFile))
-        sys.exit()
-
-# # check if output file is present
-if args.force:
-    pass
-else:
-    if os.path.isdir(prefixDir):
-        print('output file {0} already exists'.format(prefixDir))
-        sys.exit()
-
-# make tmp directory
-try:
-    if not os.path.exists(prefixDir):
-        os.mkdir(prefixDir)
-    if not os.path.exists(seqDir):
-        os.mkdir(seqDir)
-except OSError:
-    logging.error('Error in the temp directory')
-    sys.exit()
-
 ######## scripts start from here #########
 
 def seprate_fasta(inFile):
@@ -128,7 +47,6 @@ def seprate_fasta(inFile):
     for seqRec in allSeq:
         SeqIO.write(seqRec, '{0}{1}.fasta'.format(outPath, seqRec.id), 'fasta')
 
-
 def self_BLAST(lock, seq):
     """
      Run self BLASTn and report seqID if fits fused gene annotation patterns
@@ -136,7 +54,7 @@ def self_BLAST(lock, seq):
     :param seq: sequence file handle
     :return: sequence ID that meet the requirement
     """
-    blastfmt = "'6 qseqid qlen length sstart send qstart qend evalue'"
+    blastfmt = "6 qseqid qlen length sstart send qstart qend evalue"
     blastnCmd = NcbiblastnCommandline(cmd=blastn, query=seq, subject=seq,
                                       task='blastn', evalue='1e-5',
                                       outfmt=blastfmt, max_hsps='10')
@@ -158,9 +76,9 @@ def self_BLAST(lock, seq):
                     elif len(blastHits) > 3:
                         handle.write(blastHitsSplit[0][0] + '\t3+\n')
 
-                return(blastHitsSplit[0][0])
+                return blastHitsSplit[0][0]
     else:
-        return(None)
+        return None
     
 def run_blast_parallel(seqFileL):
     # instantiate jobs using mp.Pool
@@ -229,7 +147,7 @@ def rm_gff_features(gff_in, prefixDir):
     fo_gff.close()
     fh_gff.close()
     
-    return (prefixDir + "modified_annotation.gff")
+    return prefixDir + "modified_annotation.gff"
     
 
 def filter_gff(geneL, gff):
@@ -357,10 +275,88 @@ def chimera_fuse():
     KOG database or just to use orthoDB database, another option
     :return:
     """
-    init = 0
+    init = 0 # not implemented here 
 
 
 def main():
+    ####### Header file ########
+
+    description_arg = 'First step to detect the tandem duplicated fused gene annoatation'
+    usage_arg = 'python 1_detect_fused_gene -h to show help information'
+
+    parser = ArgumentParser(description=description_arg, usage=usage_arg)
+    parser.add_argument('-i', '--input', help='transcripts in [fasta] format', required=True)
+    parser.add_argument('-g', '--gffin', help='input gff from MAKER2 output', required=True)
+    parser.add_argument('-d', '--gffdb', help='input gffdb sqlite from previous run', required=False, default=None)
+    parser.add_argument('-n', '--numOfProcess', help='number of processes to be included', default=4, required=False)
+    parser.add_argument('--identity_threshold', help='identity threshold between 5 end and 3 end',
+                        default=0.25, required=False)
+    parser.add_argument('-b', '--blastn', help='path to executable blastn', default='', required=False)
+    parser.add_argument('-p', '--prefix', help='prefix dirctory', default='tmp/', required=False)
+    parser.add_argument('-f', '--force', help='force overwrite existing output', action='store_true', required=False)
+    parser.add_argument('-v', '--verbose', help='increase verbosity', action='store_true')
+
+    args = parser.parse_args()
+
+    # check if the input fild existed
+    inFile = args.input
+    # outPath = args.outpath
+    # outBlast = args.blastOut
+    numOfProcess = int(args.numOfProcess)
+    blastn = args.blastn
+    gffIn = args.gffin
+    gffdb = args.gffdb
+    prefixDir = os.path.join(args.prefix,'')
+    seqDir = os.path.join(prefixDir+'seqs', '')
+    inFilesL = [inFile]
+    # outFilesL = []
+
+    # TODO add a function to validate input file, such as fasta and gff
+
+    if args.verbose:
+        logging.basicConfig(level=logging.DEBUG, format='(%(processName)-10s) %(asctime)s %(message)s')
+    else:
+        logging.basicConfig(level=logging.INFO, format='(%(processName)-10s) %(asctime)s %(message)s')
+
+    if not os.path.isfile(gffIn):
+        logging.error('gff file is not in the specified path')
+        sys.exit()
+
+    # check executables in $PATH
+
+    if not blastn: # test makerbin is provided
+        if not which("blastn"):
+            logging.error('blastn executable is not in path\n module load BLAST+\n')
+            sys.exit()
+        else:
+            blastn = which("blastn")
+            logging.info("blastn is loaded in $PATH")
+
+
+    # check input file list
+    for inputFile in inFilesL:
+        if not os.path.isfile(inputFile):
+            logging.error('Input file {0} does not exist!'.format(inputFile))
+            sys.exit()
+
+    # # check if output file is present
+    if args.force:
+        pass
+    else:
+        if os.path.isdir(prefixDir):
+            print('output file {0} already exists'.format(prefixDir))
+            sys.exit()
+
+    # make tmp directory
+    try:
+        if not os.path.exists(prefixDir):
+            os.mkdir(prefixDir)
+        if not os.path.exists(seqDir):
+            os.mkdir(seqDir)
+    except OSError:
+        logging.error('Error in the temp directory')
+        sys.exit()
+    
     seprate_fasta(inFile)
     seqFileL = glob.glob(prefixDir + 'seqs/*.fasta')
 
