@@ -81,7 +81,20 @@ Get deFusion
 Download deFusion from `GitHub <https://github.com/wjidea/defusion>`_::
 
 	git clone https://github.com/wjidea/defusion
+    
+    conda update conda
+    conda create -n defusion python=2.7.15
+    conda activate defusion
+    conda config --remove channels bioconda
+    conda config --remove channels conda-forge
+    conda config --add channels bioconda/label/cf201901
+    conda config --add channels conda-forge/label/cf201901
+    conda install augustus rmblast maker blast
 
+    pip install gffutils
+    pip install BioPython
+
+    python defusion/defusion/1_detect_fused_gene.py -h 
 
 TODO
 ----

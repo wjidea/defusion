@@ -1,6 +1,6 @@
 from Bio.Blast.Applications import NcbiblastnCommandline
 
-# test blastn
+# test blastn in Bio.Blast.Applications
 def blastn():
     blastfmt = "6 qseqid qlen length sstart send qstart qend evalue"
     blastnCmd = NcbiblastnCommandline(cmd='blastn', query='seq1.fa', subject='seq2.fa',
