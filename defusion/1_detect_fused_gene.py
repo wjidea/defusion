@@ -3,7 +3,7 @@
 # defuse_gene.py
 
 # Oct. 14 2016
-# Last update: Feb. 15, 2018
+# Last update: Dec. 23, 2019
 # Jie Wang
 
 # description: Identify the mis-annotated genes in the MAKER annotation pipeline,
