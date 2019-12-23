@@ -40,14 +40,14 @@ from Bio.Blast.Applications import NcbiblastnCommandline
 
 ######## scripts start from here #########
 
-def seprate_fasta(inFile):
+def seprate_fasta(inFile, prefixDir):
     # outPath = outPath.rstrip('/')
     outPath = prefixDir + 'seqs/'
     allSeq = SeqIO.parse(inFile, 'fasta')
     for seqRec in allSeq:
         SeqIO.write(seqRec, '{0}{1}.fasta'.format(outPath, seqRec.id), 'fasta')
 
-def self_BLAST(lock, seq):
+def self_BLAST(lock, blastn, prefixDir, identity, seq):
     """
      Run self BLASTn and report seqID if fits fused gene annotation patterns
     :param lock: process lock for running BLAST in parallel
@@ -67,7 +67,7 @@ def self_BLAST(lock, seq):
     
     if len(blastHits) > 2:
         # if float(blastHitsSplit[1][2]) > (float(blastHitsSplit[0][1]) * 0.25):
-        if float(blastHitsSplit[1][2]) > (float(blastHitsSplit[0][1]) * args.identity_threshold):
+        if float(blastHitsSplit[1][2]) > (float(blastHitsSplit[0][1]) * identity):
             with lock:
                 with open(prefixDir + 'selfBlastOut.txt', 'ab') as handle:
                     
@@ -80,7 +80,7 @@ def self_BLAST(lock, seq):
     else:
         return None
     
-def run_blast_parallel(seqFileL):
+def run_blast_parallel(seqFileL, prefixDir, numOfProcess, blastn, identity):
     # instantiate jobs using mp.Pool
     pool = multiprocessing.Pool(numOfProcess)
     manager = multiprocessing.Manager()
@@ -98,7 +98,7 @@ def run_blast_parallel(seqFileL):
                 geneOutL.append(lineL[0])
     else:
         try:
-            fusedGeneL = pool.map(partial(self_BLAST, lock), seqFileL)
+            fusedGeneL = pool.map(partial(self_BLAST, lock, blastn, prefixDir, identity), seqFileL)
             # fusedGeneL = fusedGeneL + [result for result in blastResults]
             pool.close()
             pool.join()
@@ -150,7 +150,7 @@ def rm_gff_features(gff_in, prefixDir):
     return prefixDir + "modified_annotation.gff"
     
 
-def filter_gff(geneL, gff):
+def filter_gff(geneL, gff, prefixDir, gffdb):
     """
     :param geneL: list of candidate genes
     :param gff: maker gff out file
@@ -204,7 +204,7 @@ def filter_gff(geneL, gff):
     return(geneDict)
 
 # def breakPont(geneDict, seqIn, blastOut):
-def break_point(geneDict):
+def break_point(geneDict, prefixDir):
     """
     Parse blast fmt 6 output and extract parts of the sequence for re-annotation
     
@@ -308,6 +308,7 @@ def main():
     gffdb = args.gffdb
     prefixDir = os.path.join(args.prefix,'')
     seqDir = os.path.join(prefixDir+'seqs', '')
+    identityThreshold = args.identity_threshold
     inFilesL = [inFile]
     # outFilesL = []
 
@@ -357,14 +358,12 @@ def main():
         logging.error('Error in the temp directory')
         sys.exit()
     
-    seprate_fasta(inFile)
+    seprate_fasta(inFile, prefixDir)
     seqFileL = glob.glob(prefixDir + 'seqs/*.fasta')
-
-    geneL = run_blast_parallel(seqFileL)
-    
+    geneL = run_blast_parallel(seqFileL, prefixDir, numOfProcess, blastn, identityThreshold)
     modGFF = rm_gff_features(gffIn, prefixDir)
-    geneDict = filter_gff(geneL, modGFF)
-    break_point(geneDict)
+    geneDict = filter_gff(geneL, modGFF, prefixDir, gffdb)
+    break_point(geneDict, prefixDir)
 
 if __name__ == '__main__':
     main()
