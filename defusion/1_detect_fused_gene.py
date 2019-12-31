@@ -47,6 +47,7 @@ def seprate_fasta(inFile, prefixDir):
     for seqRec in allSeq:
         SeqIO.write(seqRec, '{0}{1}.fasta'.format(outPath, seqRec.id), 'fasta')
 
+
 def self_BLAST(lock, blastn, prefixDir, identity, seq):
     """
      Run self BLASTn and report seqID if fits fused gene annotation patterns
@@ -79,6 +80,7 @@ def self_BLAST(lock, blastn, prefixDir, identity, seq):
                 return blastHitsSplit[0][0]
     else:
         return None
+    
     
 def run_blast_parallel(seqFileL, prefixDir, numOfProcess, blastn, identity):
     # instantiate jobs using mp.Pool
@@ -332,7 +334,7 @@ def main():
     gffdb = args.gffdb
     prefixDir = os.path.join(args.prefix,'')
     seqDir = os.path.join(prefixDir+'seqs', '')
-    identityThreshold = args.identity_threshold
+    identityThreshold = float(args.identity_threshold)
     inFilesL = [inFile]
     # outFilesL = []
 
