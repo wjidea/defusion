@@ -28,8 +28,8 @@ import os
 import sys
 import glob
 import logging
-import multiprocessing
 import gffutils
+import multiprocessing as mp
 
 from utility_functions import which
 from argparse import ArgumentParser
@@ -82,8 +82,8 @@ def self_BLAST(lock, blastn, prefixDir, identity, seq):
     
 def run_blast_parallel(seqFileL, prefixDir, numOfProcess, blastn, identity):
     # instantiate jobs using mp.Pool
-    pool = multiprocessing.Pool(numOfProcess)
-    manager = multiprocessing.Manager()
+    pool = mp.Pool(int(numOfProcess))
+    manager = mp.Manager()
     lock = manager.Lock()
     
     geneListFile=  prefixDir+'selfBlastOut.txt'
@@ -98,20 +98,33 @@ def run_blast_parallel(seqFileL, prefixDir, numOfProcess, blastn, identity):
                 geneOutL.append(lineL[0])
     else:
         try:
-            fusedGeneL = pool.map(partial(self_BLAST, lock, blastn, prefixDir, identity), seqFileL)
-            # fusedGeneL = fusedGeneL + [result for result in blastResults]
+            self_BLAST_partial = partial(self_BLAST, lock, blastn, prefixDir, identity)
+            fusedGeneL = pool.map(self_BLAST_partial, seqFileL)
+
             pool.close()
             pool.join()
-    
+            
+            # processes = []
+            # for seq in seqFileL:
+            #     p = mp.Process(target=self_BLAST, args=(lock, blastn, prefixDir, identity, seq))
+            #     processes.append(p)
+            #     p.start()
+            
+            # for process in processes:
+            #     process.join()
+            
         except KeyboardInterrupt:
             # Allow ^C to interrupt from any thread.
             sys.stdout.write('\033[0m')
             sys.stdout.write('User Interupt\n')
         
+        # results = [output.get() for p in processes]
+        # print results
+        # print type(results)
+        # geneOutL = [gene_id for gene_id in results if gene_id is not None]
         geneOutL = [gene_id for gene_id in fusedGeneL if gene_id is not None]
-        
         logging.info('{}\n'.format(geneOutL))
-    return(geneOutL)
+    return geneOutL
 
 
 def rm_gff_features(gff_in, prefixDir):
@@ -278,6 +291,17 @@ def chimera_fuse():
     init = 0 # not implemented here 
 
 
+# def split_run(seqFileL, prefixDir, numOfProcess, blastn, identityThreshold):
+#     chunk_size = 2000
+#     geneL = []
+#     for i in range(0, len(seqFileL), chunk_size):
+#         split_5k = seqFileL[i:i+chunk_size]
+#         split_geneL = run_blast_parallel(split_5k, prefixDir, numOfProcess, blastn, identityThreshold)
+#         geneL.append(split_geneL)
+    
+#     return geneL
+
+
 def main():
     ####### Header file ########
 
@@ -313,7 +337,6 @@ def main():
     # outFilesL = []
 
     # TODO add a function to validate input file, such as fasta and gff
-
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG, format='(%(processName)-10s) %(asctime)s %(message)s')
     else:

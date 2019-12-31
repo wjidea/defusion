@@ -23,10 +23,8 @@ import shlex
 import fileinput
 import glob
 import gffutils
-import multiprocessing
 import re
-
-
+import multiprocessing as mp 
 from shutil import copy2
 from argparse import ArgumentParser
 from functools import partial
@@ -208,7 +206,7 @@ def run_extract_seq_parallel(fileIn):
     
     folderL = []
     
-    pool = multiprocessing.Pool(numProcess)
+    pool = mp.Pool(numProcess)
     
     try:
         folder = pool.map(extract_seq, lineL)
@@ -448,8 +446,8 @@ def composite_run(lock, seqID):
     
 def run_maker_parallel(seqNameL):
    
-    pool = multiprocessing.Pool(numProcess)
-    manager = multiprocessing.Manager()
+    pool = mp.Pool(numProcess)
+    manager = mp.Manager()
     lock = manager.Lock()
     seqIDCoordDictL = []
     
