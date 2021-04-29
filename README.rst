@@ -1,4 +1,6 @@
 deFusion
 ========
 
-deFusion - a tool to entangle MAKER fused genome annotation
+deFusion - a tool to untangle MAKER fused genome annotation
+
+Release: Zenodo
