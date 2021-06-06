@@ -55,23 +55,26 @@ def self_BLAST(lock, blastn, prefixDir, identity, seq):
     :param seq: sequence file handle
     :return: sequence ID that meet the requirement
     """
-    blastfmt = "6 qseqid qlen length sstart send qstart qend evalue"
+    blastfmt = "'6 qseqid qlen length sstart send qstart qend evalue'"
     blastnCmd = NcbiblastnCommandline(cmd=blastn, query=seq, subject=seq,
                                       task='blastn', evalue='1e-5',
                                       outfmt=blastfmt, max_hsps='10')
-    blastnResults = blastnCmd()
+    try:
+        blastnResults = blastnCmd()
+    except:
+        raise
     blastHits = blastnResults[0].rstrip().split('\n')
     blastHitsSplit = [hit.split('\t') for hit in blastHits]
-    
+
     # more than 2 hits and aln length large than a 1/4 of seq length
     logging.debug('start running selfblast, {}'.format(seq))
-    
+
     if len(blastHits) > 2:
         # if float(blastHitsSplit[1][2]) > (float(blastHitsSplit[0][1]) * 0.25):
         if float(blastHitsSplit[1][2]) > (float(blastHitsSplit[0][1]) * identity):
             with lock:
                 with open(prefixDir + 'selfBlastOut.txt', 'ab') as handle:
-                    
+
                     if len(blastHits) < 4:
                         handle.write(blastHitsSplit[0][0] + '\t2\n')
                     elif len(blastHits) > 3:
@@ -80,18 +83,18 @@ def self_BLAST(lock, blastn, prefixDir, identity, seq):
                 return blastHitsSplit[0][0]
     else:
         return None
-    
-    
+
+
 def run_blast_parallel(seqFileL, prefixDir, numOfProcess, blastn, identity):
     # instantiate jobs using mp.Pool
     pool = mp.Pool(int(numOfProcess))
     manager = mp.Manager()
     lock = manager.Lock()
-    
+
     geneListFile=  prefixDir+'selfBlastOut.txt'
     fusedGeneL = []
     geneOutL = []
-    
+
     if os.path.exists(geneListFile):
         # if selfBLAST step is done, read the results then
         with open(geneListFile, 'rb') as fh:
@@ -105,21 +108,21 @@ def run_blast_parallel(seqFileL, prefixDir, numOfProcess, blastn, identity):
 
             pool.close()
             pool.join()
-            
+
             # processes = []
             # for seq in seqFileL:
             #     p = mp.Process(target=self_BLAST, args=(lock, blastn, prefixDir, identity, seq))
             #     processes.append(p)
             #     p.start()
-            
+
             # for process in processes:
             #     process.join()
-            
+
         except KeyboardInterrupt:
             # Allow ^C to interrupt from any thread.
             sys.stdout.write('\033[0m')
             sys.stdout.write('User Interupt\n')
-        
+
         # results = [output.get() for p in processes]
         # print results
         # print type(results)
@@ -137,33 +140,33 @@ def rm_gff_features(gff_in, prefixDir):
     :return: modified gff file without evidence
     '''
     logging.info("remove ununsed features from gff file to increase load speed")
-    
+
     fh_gff = open(gff_in, 'rb')
     fo_gff = open(prefixDir + "modified_annotation.gff", 'wb')
-    
+
     for line in fh_gff.readlines():
-        
+
         if line.startswith("##FASTA") or line.startswith(">"):
             break
-        
+
         if line.startswith("##gff-version 3"):
             fo_gff.write(line)
             continue
         elif line.startswith("##"):
             continue
-        
+
         lineL = line.rstrip().split()
-        
+
         entry_source = lineL[1]
-        
+
         if entry_source == "repeatmasker" or entry_source == "maker" or entry_source == r".":
             fo_gff.write(line)
-    
+
     fo_gff.close()
     fh_gff.close()
-    
+
     return prefixDir + "modified_annotation.gff"
-    
+
 
 def filter_gff(geneL, gff, prefixDir, gffdb):
     """
@@ -173,10 +176,10 @@ def filter_gff(geneL, gff, prefixDir, gffdb):
     """
     geneDict = {}
     dbName = prefixDir + 'gff.db'
-    
+
     if gffdb and (not os.path.isfile(dbName)):
         copyfile(gffdb, dbName)
-        
+
     try: # read gff to sqlite db
         if os.path.isfile(dbName):
             db = gffutils.FeatureDB(dbName)
@@ -190,24 +193,24 @@ def filter_gff(geneL, gff, prefixDir, gffdb):
             logging.debug('complete loading gff.db')
     except ValueError:
         logging.error('import gff/gtf is not present in given path')
-    
+
     for gene in geneL: # loop through the list and collect contig info
         gene_fused = db[gene]
         g_start = gene_fused.start
         g_end = gene_fused.end
         g_seqid = gene_fused.seqid
-        
+
         # count how many exon in this gene
         g_exon_counter = 0
         logging.debug('count how many exons')
         for i in db.children(gene_fused, featuretype='exon'):
             g_exon_counter += 1
-        
+
         if g_exon_counter <= 1:
             continue
-        
+
         geneDict[gene] = [g_seqid, g_start, g_end, g_exon_counter] # seqid, start, end
-    
+
     #fixme 1 if the gene lenth (including introns) is way longer than the blastn query hit? should I delete?
     #fixme 2 example: A07:23319901..23327780 (7.88 Kb); match length and gene length
 
@@ -222,21 +225,21 @@ def filter_gff(geneL, gff, prefixDir, gffdb):
 def break_point(geneDict, prefixDir):
     """
     Parse blast fmt 6 output and extract parts of the sequence for re-annotation
-    
+
     ---|------region of interest 1------|------region of interest 2------|---
     break point 1                    break point 2                  break point 3
-    
+
     break point 1 = left border - 100
     break point 3 = right border + 100
     break point 2 = mid point between two matched features or mid point of gene
-    
+
     Another big problem is to have > 2 tandem duplicates, which can complicate the problem
-    
+
     Possible solution is to check the output transcripts to run the detect fused gene code recursively, until no fused
     annotation found in the transcripts file.
-    
+
     For the un-determined the one, raise flag for manual inspections.
-    
+
     :param geneDict: geneID:[seqid, start, end]
     :param seqIn: sequence file in fasta format
     :param blastOut: txt file generate from runBlastParallel
@@ -244,10 +247,10 @@ def break_point(geneDict, prefixDir):
     """
     # determine the breaking point TODO improve breaking point selection composite score
     # with open(blastOut)
-    
+
     # implement the simple version of this function divide them in the mid point
     dbName = prefixDir + 'gff.db'
-    
+
     try:
         db = gffutils.FeatureDB(dbName)
         logging.debug('Found gff.db, now loading')
@@ -255,24 +258,24 @@ def break_point(geneDict, prefixDir):
     except ValueError:
         print('Check gff.db present in working directory')
         sys.exit()
-        
+
     blast_dict = {}
     with open(prefixDir + 'selfBlastOut.txt', 'rb') as handle:
         for line in handle.readlines():
             lineL = line.rstrip().split()
             blast_dict[lineL[0]] = lineL[1]
-    
+
     with open(prefixDir+'break_coordinates.brk', 'wb') as fh:
         for gene in geneDict:
             geneFeatL = geneDict[gene]
             # ROI = db.region(seqid=geneFeatL[0], start=geneFeatL[1], end=geneFeatL[2], completely_within=False)
             seqID = geneFeatL[0]
             seqStart = geneFeatL[1] - 50 # increase the boundaries to expand the two borders
-            
+
             # avoid less than 0 issue
             if seqStart <= 0 :
                 seqStart = 1
-            
+
             seqEnd = geneFeatL[2] + 50
             # this is simple version just to demonstrate the format settings
             point2Break = int((int(seqEnd) - int(seqStart))/2) + int(seqStart)
@@ -281,16 +284,16 @@ def break_point(geneDict, prefixDir):
         # todo more accurate version for determining mid point need to learn more the BLAST results to detemine how
         # many repeats in the regions
     logging.info('[FINISH] deFusion step 1 is complete')
-    
+
 def chimera_fuse():
     """
     chimera fused gene annotation in MAKER, especially with SringTie Associated genes
     http://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-12-279
-    
+
     KOG database or just to use orthoDB database, another option
     :return:
     """
-    init = 0 # not implemented here 
+    init = 0 # not implemented here
 
 
 # def split_run(seqFileL, prefixDir, numOfProcess, blastn, identityThreshold):
@@ -300,7 +303,7 @@ def chimera_fuse():
 #         split_5k = seqFileL[i:i+chunk_size]
 #         split_geneL = run_blast_parallel(split_5k, prefixDir, numOfProcess, blastn, identityThreshold)
 #         geneL.append(split_geneL)
-    
+
 #     return geneL
 
 
@@ -382,7 +385,7 @@ def main():
     except OSError:
         logging.error('Error in the temp directory')
         sys.exit()
-    
+
     seprate_fasta(inFile, prefixDir)
     seqFileL = glob.glob(prefixDir + 'seqs/*.fasta')
     geneL = run_blast_parallel(seqFileL, prefixDir, numOfProcess, blastn, identityThreshold)

@@ -4,14 +4,12 @@
 
 # Jan 08, 2018
 # Jie Wang
-# Last update: Feb 15, 2018
-
-
+# Last update: Jun 6, 2021
 # extract AED scores from old and defused gffs files
 # make graphs
 
-
-import re, os
+import re
+import os
 import numpy as np
 import pandas as pd
 import matplotlib
@@ -47,10 +45,10 @@ def extract_geneid_AED(gff_file, sublist = None):
     aed_prog = re.compile("_AED=([^;]*)")
     gene_id_prog = re.compile("ID=(.*?)[;\n]") # non-greedy match
     aed_list = []
-    
+
     for line in fi_gff.readlines():
         line_L = line.rstrip().split('\t')
-        
+
         if len(line_L) > 3 and line_L[2] == "mRNA":
             gene_id_search = gene_id_prog.search(line)
             aed_search = aed_prog.search(line)
@@ -58,7 +56,7 @@ def extract_geneid_AED(gff_file, sublist = None):
             gene_id = gene_id_search.group(1)
             aed_score = aed_search.group(1)
             # goi_list.append(gene_id_search.group(1))
-            
+
             if sublist:
                 if gene_id in sublist:
                     aed_list.append(aed_score)
@@ -68,33 +66,33 @@ def extract_geneid_AED(gff_file, sublist = None):
                 aed_list.append(aed_score)
     fi_gff.close()
     aed_list.sort()
-    
+
     return(aed_list)
 
 
 def parse_brk(brk_file):
     fh = open(brk_file, 'rb')
-    
+
     gene_id_list = []
     for line in fh.readlines():
         lineL = line.rstrip().split()
         gene_id = lineL[1]
         gene_id_list.append(gene_id)
     fh.close()
-    
+
     return(gene_id_list)
 
 
 def bin_aed_score(sorted_aed_list, outfile, label, num_bin = 40):
-    
+
     sorted_aed_list = map(float, sorted_aed_list)
     hist, edges = np.histogram(sorted_aed_list, bins=num_bin, range=[0,1])
     edges = np.delete(edges, -2) # drop one edge to make the hist and edge length match
-    
+
     col1 = edges
     col2 = np.cumsum(hist)
     col3 = np.cumsum(hist) / float(sum(hist))
-    
+
     with open(outfile, 'wb') as fh:
         for i in range(num_bin):
             out_str = "{:}\t{}\t{}\t{}\n".format(col1[i], col2[i], col3[i], label)
@@ -102,11 +100,11 @@ def bin_aed_score(sorted_aed_list, outfile, label, num_bin = 40):
 
 
 def draw_aed_plot(fused_file, defused_file, out_prefix):
-    
+
     fused_aed_data = pd.read_table(fused_file, header=None, names=['aed', 'gene_counts', 'norm_gene', 'category'])
     defused_aed_data = pd.read_table(defused_file, header=None, names=['aed', 'gene_counts', 'norm_gene', 'category'])
     title_prefix = os.path.basename(out_prefix)
-    
+
     fig, ax = plt.subplots()
 
     color_fuse, color_defuse_std = 'blue', 'red'
@@ -124,25 +122,25 @@ def draw_aed_plot(fused_file, defused_file, out_prefix):
 
     # plt.show()
     plt.savefig('{}_AED_score.png'.format(out_prefix), dpi=600)
-    
-    
+
+
 def main():
     old_gff = args.ori
     defuse_gff = args.de
     in_brk = args.brk
     prefix = args.out
-    
+
     fused_gene_id = parse_brk(in_brk)
     fused_aed = extract_geneid_AED(old_gff, fused_gene_id)
     defused_aed = extract_geneid_AED(defuse_gff)
 
     fused_aed_file = "{}_fused_aed.txt".format(prefix)
     defused_aed_file = "{}_defused_aed.txt".format(prefix)
-    
+
     bin_aed_score(defused_aed, outfile=defused_aed_file, label="defused")
     bin_aed_score(fused_aed, outfile=fused_aed_file, label="fused")
 
     draw_aed_plot(fused_aed_file, defused_aed_file, prefix)
-    
+
 if __name__ == "__main__":
     main()

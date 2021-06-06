@@ -40,10 +40,10 @@ def extract_geneid_AED(gff_file):
     # aed_prog = re.compile("_AED=([^;]*)")
     gene_id_prog = re.compile("ID=(.*?)[;\n]")
     goi_list = []
-    
+
     for line in fi_gff.readlines():
         line_L = line.rstrip().split('\t')
-        
+
         if len(line_L) > 3 and line_L[2] == "mRNA":
             gene_id_search = gene_id_prog.search(line)
             # aed_search = aed_prog.search(line)
@@ -51,28 +51,28 @@ def extract_geneid_AED(gff_file):
             goi_list.append(gene_id_search.group(1))
         else:
             continue
-        
+
     fi_gff.close()
-    
+
     return(goi_list)
-    
-    
+
+
 def drop_fasta_entries(fasta_file, keep_list, fasta_out):
     seq_fn = SeqIO.parse(fasta_file, 'fasta')
     seq_fo = open(fasta_out, 'wb')
-    print keep_list
+    # print keep_list
     for seqrec in seq_fn:
-        print seqrec.id
+        # print seqrec.id
         if seqrec.id in keep_list:
-            print seqrec
-            SeqIO.write(seqrec, seq_fo,'fasta')
-    
+            # print seqrec
+            SeqIO.write(seqrec, seq_fo, 'fasta')
+
     seq_fo.close()
 
 
 def main():
     args = parser.parse_args()
-    
+
     # check if the input fild existed
     input_gff = args.gff_in
     input_fasta = args.fasta_in
@@ -81,6 +81,6 @@ def main():
     # goi_list = extract_AED_scores(gff_file=input_gff, goi_file=input_goi)
     goi_list = extract_geneid_AED(input_gff)
     drop_fasta_entries(input_fasta, goi_list, out_file)
-    
+
 if __name__ == "__main__":
     main()

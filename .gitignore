@@ -1,1 +1,6 @@
 .vscode
+*.pyc
+*.log
+tests/test_gffdb.py
+defusion/utility_functions.pyc
+defusion/__pycache__
