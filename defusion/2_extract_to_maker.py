@@ -47,6 +47,7 @@ parser.add_argument('-t', '--control', help='path trol file', required=True)
 parser.add_argument('-m', '--makerbin', help='path to maker executables directory', required=False)
 parser.add_argument('-n', '--numprocess', help='number of processes to be included', default=4, required=False)
 parser.add_argument('-p', '--prefix', help='prefix dirctory', default='tmp/', required=False)
+parser.add_argument('-r', '--reuse', help='reuse existing maker dirs', default=None, required=False)
 parser.add_argument('-s', '--datastore', help='with this flag to keep the datastore folder but need more disk space',
                     action='store_true', required=False, default=False)
 parser.add_argument('-v', '--verbose', help='increase verbosity', action='store_true', default=False)
@@ -466,7 +467,7 @@ def run_maker_parallel(seqNameL):
 
     return(seqIDCoordDictL)
 
-def update_gff(gffdb, prefixDir, seqIDCoord):
+def update_gff(prefixDir, seqIDCoord):
     '''
     change the gff file and adjust the coordinate in the genome context
     output to new gff file
@@ -481,15 +482,10 @@ def update_gff(gffdb, prefixDir, seqIDCoord):
     newGffFile = '{0}{1}/{1}.all.gff'.format(prefixDir, seqID)
     modGffFile = '{0}{1}/{1}.all.mod.gff'.format(prefixDir, seqID)
 
-    if os.path.isfile(modGffFile):
-        pass
-    elif os.path.isfile(newGffFile):
-
+    if os.path.isfile(newGffFile):
         FILE_IN = open(newGffFile, 'rb')
         FILE_OUT = open(modGffFile, 'wb')
         adjStart = seqIDCoord[seqID]
-
-        # FILE_OUT.write('##gff-version 3\n')
 
         for line in FILE_IN.readlines():
             if line.startswith('#'):
@@ -497,7 +493,9 @@ def update_gff(gffdb, prefixDir, seqIDCoord):
             else:
                 featL = line.rstrip().split('\t')
                 if featL[1] in ['maker', 'augustus_masked', 'snap_masked', 'est2genome', 'protein2genome']:
-                    modCoord = [int(featL[3]) + adjStart, int(featL[4]) + adjStart + 1]
+                    # gff file lift over
+                    # gffdb is zero based while the gff format is 1 based.
+                    modCoord = [int(featL[3]) + adjStart + 1, int(featL[4]) + adjStart + 1]
                     featL[3:5] = map(str, modCoord)
 
                     # featL[0] = featL[0].split('_')[0]
@@ -614,29 +612,32 @@ def write_gff(gffdb):
 
 
 def main():
-    # main routine
-    flat_multiple_breaks(coordIn, 'flat_break.txt')
-    seqNamesL = run_extract_seq_parallel(prefixDir + 'flat_break.txt')
-    # seqNamesL = map(os.path.basename, glob.glob(prefixDir + 'Ro*')) # debugging purpose
-    seqCoordL = run_maker_parallel(seqNamesL)
-    del_gene_records(gffdb, coordIn)
 
-################################################################################################
-    # #This part was used solely to test the gffdb update part
-    # seqFolderL = glob.glob(prefixDir + '/scaffold_*')
-    # seqFolderL = map(os.path.basename, seqFolderL)
-    # def parse_folder_name(folder_name):
-    #     folder_list = folder_name.split('_')
-    #     print(folder_list)
-    #     start = folder_list[1]
-    #     seq_adj = int(start) - 1
-    #     return({folder_name:seq_adj})
+    if args.reuse:
+        ################################################################################################
+        # reuse mode
 
-    # seqCoordL = map(parse_folder_name, seqFolderL)
-###############################################################################################
+        seqFolderL = glob.glob(prefixDir + '/{0}*'.format(args.reuse))
+        seqFolderL = map(os.path.basename, seqFolderL)
+        def parse_folder_name(folder_name):
+            folder_list = folder_name.split('_')
+            start = folder_list[1]
+            seq_adj = int(start) - 1
+            return({folder_name:seq_adj})
+
+        seqCoordL = map(parse_folder_name, seqFolderL)
+        ###############################################################################################
+    else:
+        # main routine
+        flat_multiple_breaks(coordIn, 'flat_break.txt')
+        seqNamesL = run_extract_seq_parallel(prefixDir + 'flat_break.txt')
+        # seqNamesL = map(os.path.basename, glob.glob(prefixDir + 'Ro*')) # debugging purpose
+        seqCoordL = run_maker_parallel(seqNamesL)
+        del_gene_records(gffdb, coordIn)
+
 
     for seqDict in seqCoordL:
-        update_gff(gffdb, prefixDir, seqDict)
+        update_gff(prefixDir, seqDict)
 
     merge_gff(prefixDir, seqCoordL)
     write_gff(gffdb)
